@@ -1,5 +1,4 @@
-import React, { useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useState } from 'react';
 
 type TooltipPosition = 'top' | 'bottom' | 'left' | 'right';
 
@@ -9,93 +8,35 @@ type TooltipProps = {
   position?: TooltipPosition;
 };
 
+const placementClass: Record<TooltipPosition, string> = {
+  top: 'bottom-full left-1/2 mb-2 -translate-x-1/2',
+  bottom: 'top-full left-1/2 mt-2 -translate-x-1/2',
+  left: 'right-full top-1/2 mr-2 -translate-y-1/2',
+  right: 'left-full top-1/2 ml-2 -translate-y-1/2',
+};
+
 export const Tooltip: React.FC<TooltipProps> = ({
   content,
   children,
   position = 'top',
 }) => {
-  const triggerRef = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
-  const [coords, setCoords] = useState({ top: 0, left: 0 });
-  const [placement, setPlacement] = useState<TooltipPosition>(position);
-
-  const show = () => {
-    if (!triggerRef.current) return;
-
-    const rect = triggerRef.current.getBoundingClientRect();
-
-    let top = rect.top;
-    let left = rect.left;
-    let finalPlacement = position;
-
-    if (position === 'top') {
-      top = rect.top - 8;
-      left = rect.left + rect.width / 2;
-
-      if (top < 0) {
-        top = rect.bottom + 8;
-        finalPlacement = 'bottom';
-      }
-    }
-
-    if (position === 'bottom') {
-      top = rect.bottom + 8;
-      left = rect.left + rect.width / 2;
-
-      if (top > window.innerHeight - 40) {
-        top = rect.top - 8;
-        finalPlacement = 'top';
-      }
-    }
-
-    setCoords({ top, left });
-    setPlacement(finalPlacement);
-    setVisible(true);
-  };
-
-  const getTransform = () => {
-    if (placement === 'top') return 'translate(-50%, -100%)';
-    if (placement === 'bottom') return 'translate(-50%, 0)';
-    if (placement === 'left') return 'translate(-100%, -50%)';
-    if (placement === 'right') return 'translate(0, -50%)';
-    return '';
-  };
 
   return (
-    <>
-      <div
-        ref={triggerRef}
-        onMouseEnter={show}
-        onMouseLeave={() => setVisible(false)}
-        className="inline-block"
-      >
-        {children}
-      </div>
+    <div
+      className="relative inline-block"
+      onMouseEnter={() => setVisible(true)}
+      onMouseLeave={() => setVisible(false)}
+    >
+      {children}
 
-      {visible &&
-        createPortal(
-          <div
-            style={{
-              position: 'fixed',
-              top: coords.top,
-              left: coords.left,
-              transform: getTransform(),
-              zIndex: 9999,
-            }}
-            className="
-              bg-gray-700/70 text-white text-xs
-              backdrop-blur-[2px]
-              px-2 py-1 rounded-md
-              shadow-lg
-              max-w-xs
-              whitespace-normal
-              pointer-events-none
-            "
-          >
-            {content}
-          </div>,
-          document.body,
-        )}
-    </>
+      {visible && (
+        <div
+          className={`pointer-events-none absolute z-50 max-w-xs whitespace-normal rounded-md bg-gray-700/80 px-2 py-1 text-xs text-white shadow-lg backdrop-blur-[2px] ${placementClass[position]}`}
+        >
+          {content}
+        </div>
+      )}
+    </div>
   );
 };

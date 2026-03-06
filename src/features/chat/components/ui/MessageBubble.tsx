@@ -22,7 +22,7 @@ import { MessageBubbleProps } from './types';
 
 export const MessageBubble: React.FC<
   MessageBubbleProps & { animIndex?: number }
-> = ({ msg, onEdit, onRetry, animIndex = 0 }) => {
+> = ({ msg, onEdit, onRetry }) => {
   const [copiedText, setCopiedText] = useState<string | null>(null);
   const [isThinkingExpanded, setIsThinkingExpanded] = useState(false);
 
@@ -47,62 +47,18 @@ export const MessageBubble: React.FC<
         }
 
         return !inline && match ? (
-          <div
-            style={{
-              position: 'relative',
-              marginTop: 10,
-              marginBottom: 10,
-              borderRadius: 10,
-              overflow: 'hidden',
-              background: 'var(--bg-code)',
-              border: '1px solid var(--border)',
-            }}
-          >
-            {/* Code header */}
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '6px 14px',
-                background: 'rgba(0,0,0,0.3)',
-                borderBottom: '1px solid rgba(255,255,255,0.06)',
-              }}
-            >
-              <span
-                style={{
-                  fontSize: '0.72rem',
-                  color: 'rgba(255,255,255,0.5)',
-                  fontFamily: 'monospace',
-                  letterSpacing: '0.05em',
-                }}
-              >
+          <div className="my-2.5 overflow-hidden rounded-[10px] border border-[var(--border)] bg-[var(--bg-code)]">
+            <div className="flex items-center justify-between border-b border-white/10 bg-black/30 px-3.5 py-1.5">
+              <span className="font-mono text-[0.72rem] tracking-[0.05em] text-white/50">
                 {match[1].toUpperCase()}
               </span>
               <button
                 onClick={() => handleCopyCode(codeString)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 5,
-                  fontSize: '0.72rem',
-                  color:
-                    copiedText === codeString
-                      ? '#10b981'
-                      : 'rgba(255,255,255,0.5)',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  transition: 'color 0.15s',
-                  padding: '2px 6px',
-                  borderRadius: 5,
-                }}
+                className={`flex items-center gap-1 rounded px-1.5 py-0.5 text-[0.72rem] transition ${
+                  copiedText === codeString ? 'text-emerald-500' : 'text-white/60'
+                }`}
               >
-                {copiedText === codeString ? (
-                  <Check size={12} />
-                ) : (
-                  <Copy size={12} />
-                )}
+                {copiedText === codeString ? <Check size={12} /> : <Copy size={12} />}
                 {copiedText === codeString ? 'Copied!' : 'Copy'}
               </button>
             </div>
@@ -123,14 +79,7 @@ export const MessageBubble: React.FC<
           </div>
         ) : (
           <code
-            style={{
-              background: 'var(--bg-code)',
-              color: '#e06c75',
-              padding: '0.12em 0.42em',
-              borderRadius: 5,
-              fontSize: '0.86em',
-              fontFamily: "'JetBrains Mono','Fira Code',monospace",
-            }}
+            className="rounded bg-[var(--bg-code)] px-1.5 py-0.5 font-mono text-[0.86em] text-[#e06c75]"
             {...props}
           >
             {children}
@@ -139,67 +88,32 @@ export const MessageBubble: React.FC<
       },
 
       table: ({ node, ...props }: any) => (
-        <div style={{ overflowX: 'auto', margin: '16px 0' }}>
+        <div className="my-4 overflow-x-auto">
           <table
-            style={{
-              minWidth: '100%',
-              borderCollapse: 'collapse',
-              border: '1px solid var(--border)',
-              borderRadius: 8,
-              overflow: 'hidden',
-            }}
+            className="min-w-full overflow-hidden rounded-lg border border-[var(--border)] border-collapse"
             {...props}
           />
         </div>
       ),
       thead: ({ node, ...props }: any) => (
-        <thead style={{ background: 'var(--bg-elevated)' }} {...props} />
+        <thead className="bg-[var(--bg-elevated)]" {...props} />
       ),
       tbody: ({ node, ...props }: any) => <tbody {...props} />,
       tr: ({ node, ...props }: any) => (
-        <tr
-          style={{
-            borderBottom: '1px solid var(--border)',
-            transition: 'background 0.12s',
-          }}
-          {...props}
-        />
+        <tr className="border-b border-[var(--border)]" {...props} />
       ),
       th: ({ node, ...props }: any) => (
         <th
-          style={{
-            padding: '10px 14px',
-            textAlign: 'left',
-            fontSize: '0.78rem',
-            fontWeight: 600,
-            color: 'var(--text-secondary)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.04em',
-          }}
+          className="px-3.5 py-2.5 text-left text-[0.78rem] font-semibold uppercase tracking-[0.04em] text-[var(--text-secondary)]"
           {...props}
         />
       ),
       td: ({ node, ...props }: any) => (
-        <td
-          style={{
-            padding: '9px 14px',
-            fontSize: '0.875rem',
-            color: 'var(--text-primary)',
-          }}
-          {...props}
-        />
+        <td className="px-3.5 py-2.5 text-[0.875rem] text-[var(--text-primary)]" {...props} />
       ),
       blockquote: ({ node, ...props }: any) => (
         <blockquote
-          style={{
-            borderLeft: '3px solid var(--accent)',
-            background: 'var(--accent-subtle)',
-            padding: '10px 16px',
-            margin: '12px 0',
-            borderRadius: '0 8px 8px 0',
-            color: 'var(--text-secondary)',
-            fontStyle: 'normal',
-          }}
+          className="my-3 rounded-r-lg border-l-[3px] border-[var(--accent)] bg-[var(--accent-subtle)] px-4 py-2.5 text-[var(--text-secondary)]"
           {...props}
         />
       ),
@@ -209,205 +123,78 @@ export const MessageBubble: React.FC<
 
   return (
     <div
-      className={`flex w-full px-2 py-1 group ${isUser ? 'justify-end' : 'justify-start'}`}
-      style={{
-        animation: `fadeIn 0.22s cubic-bezier(0.16,1,0.3,1) ${Math.min(animIndex * 0.03, 0.15)}s both`,
-      }}
+      className={`group flex w-full px-2 py-1 ${isUser ? 'justify-end' : 'justify-start'} animate-[fadeIn_0.22s_cubic-bezier(0.16,1,0.3,1)_both]`}
     >
-      {/* AI avatar */}
       {!isUser && (
-        <div
-          style={{
-            width: 28,
-            height: 28,
-            borderRadius: 8,
-            background: 'var(--accent-subtle)',
-            border:
-              '1px solid color-mix(in srgb, var(--accent) 25%, transparent)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-            marginRight: 10,
-            marginTop: 4,
-          }}
-        >
-          <span
-            style={{
-              fontSize: '0.65rem',
-              fontWeight: 700,
-              color: 'var(--accent)',
-            }}
-          >
-            AI
-          </span>
+        <div className="mr-2.5 mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-[color-mix(in_srgb,var(--accent)_25%,transparent)] bg-[var(--accent-subtle)]">
+          <span className="text-[0.65rem] font-bold text-[var(--accent)]">AI</span>
         </div>
       )}
 
-      <div
-        style={{
-          maxWidth: isUser ? '75%' : '90%',
-          position: 'relative',
-        }}
-      >
+      <div className={`relative ${isUser ? 'max-w-[75%]' : 'max-w-[90%]'}`}>
         <div
-          style={{
-            padding: isUser ? '10px 14px' : '12px 16px',
-            borderRadius: isUser ? '18px 18px 6px 18px' : '4px 18px 18px 18px',
-            background: isUser ? 'var(--bg-bubble-user)' : 'var(--bg-surface)',
-            color: isUser ? 'var(--text-bubble-user)' : 'var(--text-bubble-ai)',
-            border: isUser ? 'none' : '1px solid var(--border)',
-            boxShadow: isUser
-              ? '0 2px 12px color-mix(in srgb, var(--accent) 25%, transparent)'
-              : 'var(--shadow-sm)',
-            transition: 'box-shadow 0.15s',
-          }}
+          className={`${
+            isUser
+              ? 'rounded-[18px_18px_6px_18px] border-none bg-[var(--bg-bubble-user)] px-3.5 py-2.5 text-[var(--text-bubble-user)] shadow-[0_2px_12px_color-mix(in_srgb,var(--accent)_25%,transparent)]'
+              : 'rounded-[4px_18px_18px_18px] border border-[var(--border)] bg-[var(--bg-surface)] px-4 py-3 text-[var(--text-bubble-ai)] shadow-[var(--shadow-sm)]'
+          }`}
         >
-          {/* Thinking */}
           {thinkingText && (
-            <div
-              style={{
-                marginBottom: 10,
-                borderRadius: 8,
-                overflow: 'hidden',
-                background: 'var(--bg-elevated)',
-                border: '1px solid var(--border)',
-              }}
-            >
+            <div className="mb-2.5 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)]">
               <button
                 onClick={() => setIsThinkingExpanded((p) => !p)}
-                style={{
-                  width: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  padding: '8px 12px',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: 'var(--text-secondary)',
-                  fontSize: '0.8rem',
-                  fontWeight: 500,
-                  transition: 'background 0.12s',
-                }}
+                className="flex w-full items-center gap-2 px-3 py-2 text-[0.8rem] font-medium text-[var(--text-secondary)]"
               >
                 <BrainCircuit
                   size={14}
-                  style={{
-                    color: msg.isTyping
-                      ? 'var(--accent)'
-                      : 'var(--text-secondary)',
-                    flexShrink: 0,
-                    animation: msg.isTyping
-                      ? 'pulseDot 1.5s ease-in-out infinite'
-                      : 'none',
-                  }}
+                  className={`shrink-0 ${msg.isTyping ? 'animate-[pulseDot_1.5s_ease-in-out_infinite] text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}
                 />
-                <span style={{ flex: 1, textAlign: 'left' }}>
-                  {msg.isTyping && !formattedContent
-                    ? 'Thinking…'
-                    : 'Chain of thought'}
+                <span className="flex-1 text-left">
+                  {msg.isTyping && !formattedContent ? 'Thinking…' : 'Chain of thought'}
                 </span>
-                {isThinkingExpanded ? (
-                  <ChevronDown size={13} />
-                ) : (
-                  <ChevronRight size={13} />
-                )}
+                {isThinkingExpanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
               </button>
               {isThinkingExpanded && (
-                <div
-                  style={{
-                    padding: '10px 12px',
-                    borderTop: '1px solid var(--border)',
-                    fontSize: '0.8rem',
-                    lineHeight: 1.6,
-                    color: 'var(--text-secondary)',
-                    whiteSpace: 'pre-wrap',
-                    fontFamily: "'JetBrains Mono','Fira Code',monospace",
-                    animation: 'fadeIn 0.18s both',
-                  }}
-                >
+                <div className="animate-[fadeIn_0.18s_both] whitespace-pre-wrap border-t border-[var(--border)] px-3 py-2.5 font-mono text-[0.8rem] leading-6 text-[var(--text-secondary)]">
                   {thinkingText}
                 </div>
               )}
             </div>
           )}
 
-          {/* Attachments */}
           {msg.attachments?.length > 0 && (
-            <div
-              style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: 8,
-                marginBottom: 10,
-              }}
-            >
+            <div className="mb-2.5 flex flex-wrap gap-2">
               {msg.attachments.map((file: any, idx: number) =>
                 file.type?.startsWith('image/') ? (
                   <img
                     key={idx}
                     src={file.url}
                     alt={file.name || 'attachment'}
-                    style={{
-                      maxWidth: 280,
-                      maxHeight: 200,
-                      borderRadius: 10,
-                      objectFit: 'contain',
-                      border: '1px solid var(--border)',
-                    }}
+                    className="max-h-[200px] max-w-[280px] rounded-[10px] border border-[var(--border)] object-contain"
                   />
                 ) : (
                   <div
                     key={idx}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      padding: '6px 10px',
-                      borderRadius: 8,
-                      background: 'var(--bg-elevated)',
-                      border: '1px solid var(--border)',
-                      fontSize: '0.8rem',
-                      color: 'var(--text-secondary)',
-                    }}
+                    className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] px-2.5 py-1.5 text-[0.8rem] text-[var(--text-secondary)]"
                   >
                     <Paperclip size={13} />
-                    <span
-                      style={{
-                        maxWidth: 180,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {file.name || 'File'}
-                    </span>
+                    <span className="max-w-[180px] truncate">{file.name || 'File'}</span>
                   </div>
                 ),
               )}
             </div>
           )}
 
-          {/* Typing indicator */}
           {msg.isTyping && !formattedContent && !thinkingText && (
-            <div
-              style={{
-                display: 'flex',
-                gap: 5,
-                alignItems: 'center',
-                padding: '4px 0',
-              }}
-            >
+            <div className="flex items-center gap-1.5 py-1">
               <span className="typing-dot" />
               <span className="typing-dot" />
               <span className="typing-dot" />
             </div>
           )}
 
-          {/* Content */}
           {formattedContent && (
-            <div className={`prose prose-sm${isUser ? '' : ''}`}>
+            <div className="prose prose-sm max-w-none">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm, remarkMath]}
                 rehypePlugins={[rehypeKatex]}
@@ -420,37 +207,16 @@ export const MessageBubble: React.FC<
           )}
         </div>
 
-        {/* Action buttons (hover) */}
         <div
-          style={{
-            position: 'absolute',
-            bottom: -22,
-            right: isUser ? 4 : 'auto',
-            left: isUser ? 'auto' : 4,
-            display: 'flex',
-            gap: 6,
-            opacity: 0,
-            transition: 'opacity 0.15s',
-          }}
-          className="group-hover:opacity-100"
+          className={`absolute -bottom-[22px] flex gap-1.5 opacity-0 transition-opacity group-hover:opacity-100 ${
+            isUser ? 'right-1' : 'left-1'
+          }`}
         >
           {msg.role === 'user' && onEdit && (
             <button
               onClick={() => onEdit(msg)}
               title="Edit message"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-                padding: '3px 8px',
-                borderRadius: 6,
-                fontSize: '0.72rem',
-                background: 'var(--bg-surface)',
-                border: '1px solid var(--border)',
-                color: 'var(--text-secondary)',
-                cursor: 'pointer',
-                transition: 'color 0.12s',
-              }}
+              className="flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--bg-surface)] px-2 py-[3px] text-[0.72rem] text-[var(--text-secondary)]"
             >
               <Edit2 size={11} /> Edit
             </button>
@@ -459,19 +225,7 @@ export const MessageBubble: React.FC<
             <button
               onClick={() => onRetry(msg)}
               title="Regenerate response"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-                padding: '3px 8px',
-                borderRadius: 6,
-                fontSize: '0.72rem',
-                background: 'var(--bg-surface)',
-                border: '1px solid var(--border)',
-                color: 'var(--text-secondary)',
-                cursor: 'pointer',
-                transition: 'color 0.12s',
-              }}
+              className="flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--bg-surface)] px-2 py-[3px] text-[0.72rem] text-[var(--text-secondary)]"
             >
               <RefreshCw size={11} /> Retry
             </button>

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useModelManager } from '../hooks/useModelManager';
-import { useSettings } from '@/contexts/SettingsContext';
 import { Combobox } from '@/components/ui/Combobox';
 import { Modal } from '@/components/ui/Modal';
 import {
@@ -12,6 +11,9 @@ import {
   X,
 } from 'lucide-react';
 
+const baseInputClass =
+  'w-full rounded-lg border border-[var(--border)] bg-[var(--bg-base)] px-3 py-2 text-[0.83rem] text-[var(--text-primary)]';
+
 export const TabModels: React.FC = () => {
   const {
     localModels,
@@ -22,245 +24,71 @@ export const TabModels: React.FC = () => {
     error,
     fetchLocalModels,
     searchHuggingFace,
-    loadModel,
     deleteModel,
     downloadModel,
     cancelDownload,
     clearError,
   } = useModelManager();
-  const { settings } = useSettings();
 
   const [repoInput, setRepoInput] = useState('');
   const [selectedHfUrl, setSelectedHfUrl] = useState('');
   const [directUrl, setDirectUrl] = useState('');
   const [fileToDelete, setFileToDelete] = useState<string | null>(null);
 
-  const sectionTitle = (text: string, action?: React.ReactNode) => (
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 10,
-      }}
-    >
-      <span
-        style={{
-          fontSize: '0.78rem',
-          fontWeight: 600,
-          textTransform: 'uppercase',
-          letterSpacing: '0.06em',
-          color: 'var(--text-tertiary)',
-        }}
-      >
-        {text}
-      </span>
-      {action}
-    </div>
-  );
-
-  const btn = (
-    label: React.ReactNode,
-    onClick: () => void,
-    variant: 'primary' | 'danger' | 'ghost' = 'primary',
-    disabled = false,
-  ) => {
-    const styles: Record<string, React.CSSProperties> = {
-      primary: {
-        background: 'var(--accent)',
-        color: '#fff',
-        boxShadow:
-          '0 1px 4px color-mix(in srgb, var(--accent) 35%, transparent)',
-      },
-      danger: { background: 'var(--danger)', color: '#fff' },
-      ghost: {
-        background: 'var(--bg-hover)',
-        color: 'var(--text-secondary)',
-        border: '1px solid var(--border)',
-      },
-    };
-    return (
-      <button
-        onClick={onClick}
-        disabled={disabled}
-        style={{
-          ...styles[variant],
-          padding: '7px 14px',
-          borderRadius: 8,
-          fontSize: '0.8rem',
-          fontWeight: 600,
-          border: 'none',
-          cursor: disabled ? 'not-allowed' : 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-          opacity: disabled ? 0.45 : 1,
-          transition: 'all 0.14s',
-        }}
-      >
-        {label}
-      </button>
-    );
-  };
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-      {/* Error */}
+    <div className="flex flex-col gap-6">
       {error && (
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            padding: '10px 14px',
-            borderRadius: 8,
-            fontSize: '0.83rem',
-            background: 'color-mix(in srgb, var(--danger) 10%, transparent)',
-            border:
-              '1px solid color-mix(in srgb, var(--danger) 30%, transparent)',
-            color: 'var(--danger)',
-            animation: 'fadeIn 0.2s both',
-          }}
-        >
+        <div className="flex animate-[fadeIn_0.2s_both] items-center justify-between rounded-lg border border-[color-mix(in_srgb,var(--danger)_30%,transparent)] bg-[color-mix(in_srgb,var(--danger)_10%,transparent)] px-3.5 py-2.5 text-[0.83rem] text-[var(--danger)]">
           <span>{error}</span>
-          <button
-            onClick={clearError}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              color: 'var(--danger)',
-            }}
-          >
+          <button onClick={clearError} className="text-[var(--danger)]">
             <X size={14} />
           </button>
         </div>
       )}
 
-      {/* Installed models */}
       <section>
-        {sectionTitle(
-          'Installed Models',
+        <div className="mb-2.5 flex items-center justify-between">
+          <span className="text-[0.78rem] font-semibold uppercase tracking-[0.06em] text-[var(--text-tertiary)]">
+            Installed Models
+          </span>
           <button
             onClick={fetchLocalModels}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              color: 'var(--accent)',
-              fontSize: '0.78rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-            }}
+            className="flex items-center gap-1 text-[0.78rem] text-[var(--accent)]"
           >
             <RefreshCw size={12} /> Refresh
-          </button>,
-        )}
-        <div
-          style={{
-            background: 'var(--bg-elevated)',
-            border: '1px solid var(--border)',
-            borderRadius: 10,
-            overflow: 'hidden',
-          }}
-        >
+          </button>
+        </div>
+
+        <div className="overflow-hidden rounded-[10px] border border-[var(--border)] bg-[var(--bg-elevated)]">
           {isLoadingModels ? (
-            <div
-              style={{
-                padding: '20px',
-                textAlign: 'center',
-                color: 'var(--text-tertiary)',
-                fontSize: '0.83rem',
-              }}
-            >
-              <span
-                style={{
-                  display: 'inline-block',
-                  width: 16,
-                  height: 16,
-                  border: '2px solid var(--accent)',
-                  borderTopColor: 'transparent',
-                  borderRadius: '50%',
-                  animation: 'spinSlow 1s linear infinite',
-                  marginRight: 8,
-                  verticalAlign: 'middle',
-                }}
-              />
+            <div className="px-5 py-5 text-center text-[0.83rem] text-[var(--text-tertiary)]">
+              <span className="mr-2 inline-block h-4 w-4 animate-[spinSlow_1s_linear_infinite] rounded-full border-2 border-[var(--accent)] border-t-transparent align-middle" />
               Loading models…
             </div>
           ) : localModels.length === 0 ? (
-            <div
-              style={{
-                padding: '20px',
-                textAlign: 'center',
-                color: 'var(--text-tertiary)',
-                fontSize: '0.83rem',
-              }}
-            >
+            <div className="px-5 py-5 text-center text-[0.83rem] text-[var(--text-tertiary)]">
               No models found
             </div>
           ) : (
             localModels.map((m, i) => (
               <div
                 key={m.name}
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  padding: '10px 14px',
-                  borderBottom:
-                    i < localModels.length - 1
-                      ? '1px solid var(--border)'
-                      : 'none',
-                  transition: 'background 0.12s',
-                  animation: `fadeIn 0.2s ${i * 0.04}s both`,
-                }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.background = 'var(--bg-hover)')
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.background = 'transparent')
-                }
+                className={`flex items-center justify-between px-3.5 py-2.5 transition hover:bg-[var(--bg-hover)] ${
+                  i < localModels.length - 1 ? 'border-b border-[var(--border)]' : ''
+                }`}
               >
-                <div style={{ minWidth: 0, paddingRight: 12 }}>
+                <div className="min-w-0 pr-3">
                   <div
-                    style={{
-                      fontSize: '0.84rem',
-                      fontWeight: 600,
-                      color: 'var(--text-primary)',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
+                    className="truncate text-[0.84rem] font-semibold text-[var(--text-primary)]"
                     title={m.name}
                   >
                     {m.name}
                   </div>
-                  <div
-                    style={{
-                      fontSize: '0.75rem',
-                      color: 'var(--text-tertiary)',
-                      display: 'flex',
-                      gap: 6,
-                      marginTop: 2,
-                    }}
-                  >
-                    <span
-                      style={{ display: 'flex', alignItems: 'center', gap: 3 }}
-                    >
+                  <div className="mt-0.5 flex gap-1.5 text-[0.75rem] text-[var(--text-tertiary)]">
+                    <span className="flex items-center gap-1">
                       <HardDrive size={10} /> {m.size_str}
                     </span>
-                    <span
-                      style={{
-                        background: 'var(--bg-code)',
-                        color: 'var(--text-secondary)',
-                        padding: '0 5px',
-                        borderRadius: 4,
-                        fontFamily: 'monospace',
-                        fontSize: '0.72rem',
-                      }}
-                    >
+                    <span className="rounded bg-[var(--bg-code)] px-1.5 font-mono text-[0.72rem] text-[var(--text-secondary)]">
                       {m.quant}
                     </span>
                   </div>
@@ -268,15 +96,7 @@ export const TabModels: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setFileToDelete(m.name)}
-                  className="
-                    flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-[7px] cursor-pointer
-                    border-[1px] border-solid border-[color-mix(in_srgb,var(--danger)_30%,transparent)]
-                    bg-[color-mix(in_srgb,var(--danger)_8%,transparent)]
-                    text-[var(--danger)]
-                    transition-all duration-120
-                    hover:bg-[var(--danger)]
-                    hover:text-white
-                  "
+                  className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-[7px] border border-[color-mix(in_srgb,var(--danger)_30%,transparent)] bg-[color-mix(in_srgb,var(--danger)_8%,transparent)] text-[var(--danger)] transition hover:bg-[var(--danger)] hover:text-white"
                 >
                   <Trash2 size={13} />
                 </button>
@@ -284,6 +104,7 @@ export const TabModels: React.FC = () => {
             ))
           )}
         </div>
+
         <Modal
           isOpen={!!fileToDelete}
           onClose={() => setFileToDelete(null)}
@@ -297,70 +118,37 @@ export const TabModels: React.FC = () => {
           confirmText="Delete Permanently"
           confirmVariant="danger"
         >
-          <p
-            style={{
-              fontSize: '0.875rem',
-              color: 'var(--text-secondary)',
-              marginBottom: 10,
-            }}
-          >
+          <p className="mb-2.5 text-[0.875rem] text-[var(--text-secondary)]">
             Are you sure you want to permanently delete this model?
           </p>
-          <div
-            style={{
-              background: 'var(--bg-elevated)',
-              padding: '8px 12px',
-              borderRadius: 8,
-              border: '1px solid var(--border)',
-            }}
-          >
-            <code
-              style={{
-                fontSize: '0.78rem',
-                color: 'var(--danger)',
-                wordBreak: 'break-all',
-              }}
-            >
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] px-3 py-2">
+            <code className="break-all text-[0.78rem] text-[var(--danger)]">
               {fileToDelete}
             </code>
           </div>
         </Modal>
       </section>
 
-      {/* Download */}
       <section>
-        {sectionTitle('Download Model')}
+        <div className="mb-2.5">
+          <span className="text-[0.78rem] font-semibold uppercase tracking-[0.06em] text-[var(--text-tertiary)]">
+            Download Model
+          </span>
+        </div>
 
-        {/* HF link */}
         <a
           href="https://huggingface.co/models?pipeline_tag=text-generation&library=gguf&sort=trending"
           target="_blank"
           rel="noopener noreferrer"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '10px 14px',
-            borderRadius: 10,
-            marginBottom: 10,
-            background: 'color-mix(in srgb, #f59e0b 8%, transparent)',
-            border: '1px solid color-mix(in srgb, #f59e0b 30%, transparent)',
-            color: '#d97706',
-            textDecoration: 'none',
-            fontSize: '0.83rem',
-            fontWeight: 500,
-            transition: 'background 0.12s',
-          }}
+          className="mb-2.5 flex items-center justify-between rounded-[10px] border border-[color-mix(in_srgb,#f59e0b_30%,transparent)] bg-[color-mix(in_srgb,#f59e0b_8%,transparent)] px-3.5 py-2.5 text-[0.83rem] font-medium text-amber-600 no-underline transition"
         >
-          <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: '1.1rem' }}>🤗</span> Browse HuggingFace
-            GGUF
+          <span className="flex items-center gap-2">
+            <span className="text-[1.1rem]">🤗</span> Browse HuggingFace GGUF
           </span>
           <ExternalLink size={14} />
         </a>
 
-        {/* Repo search */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+        <div className="mb-2 flex gap-2">
           <input
             type="text"
             placeholder="HuggingFace repo ID (e.g. TheBloke/Mistral-7B-GGUF)"
@@ -371,64 +159,46 @@ export const TabModels: React.FC = () => {
               repoInput.trim() &&
               (searchHuggingFace(repoInput.trim()), setSelectedHfUrl(''))
             }
-            style={{ flex: 1, padding: '8px 12px', fontSize: '0.83rem' }}
+            className={baseInputClass}
           />
-          {btn(
-            isSearchingHf ? (
-              <>
-                <span
-                  style={{
-                    width: 12,
-                    height: 12,
-                    border: '2px solid #fff',
-                    borderTopColor: 'transparent',
-                    borderRadius: '50%',
-                    display: 'inline-block',
-                    animation: 'spinSlow 1s linear infinite',
-                  }}
-                />{' '}
-                Fetching…
-              </>
-            ) : (
-              'Fetch'
-            ),
-            () => {
+          <button
+            onClick={() => {
               if (repoInput.trim()) {
                 searchHuggingFace(repoInput.trim());
                 setSelectedHfUrl('');
               }
-            },
-            'primary',
-            isSearchingHf || !repoInput.trim(),
-          )}
+            }}
+            disabled={isSearchingHf || !repoInput.trim()}
+            className="flex items-center gap-1.5 rounded-lg bg-[var(--accent)] px-3.5 py-2 text-[0.8rem] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-45"
+          >
+            {isSearchingHf ? (
+              <>
+                <span className="inline-block h-3 w-3 animate-[spinSlow_1s_linear_infinite] rounded-full border-2 border-white border-t-transparent" />
+                Fetching…
+              </>
+            ) : (
+              'Fetch'
+            )}
+          </button>
         </div>
 
         {hfFiles.length > 0 && (
-          <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-            <div style={{ flex: 1 }}>
+          <div className="mb-2 flex gap-2">
+            <div className="flex-1">
               <Combobox
                 className="w-full"
                 options={hfFiles.map((f) => ({
                   value: f.url,
                   searchText: `${f.name} ${f.size_str} ${f.quant}`,
                   label: (
-                    <div style={{ lineHeight: 1.3 }}>
+                    <div className="leading-tight">
                       <div
-                        style={{
-                          fontSize: '0.83rem',
-                          fontWeight: 500,
-                          color: 'var(--text-primary)',
-                        }}
+                        className="text-[0.83rem] font-medium text-[var(--text-primary)]"
                         title={f.name}
                       >
                         {f.name}
                       </div>
-                      <div
-                        style={{
-                          fontSize: '0.75rem',
-                          color: 'var(--text-tertiary)',
-                        }}
-                      >
+                      <div className="text-[0.75rem] text-[var(--text-tertiary)]">
                         {f.size_str} · {f.quant}
                       </div>
                     </div>
@@ -439,76 +209,56 @@ export const TabModels: React.FC = () => {
                 placeholder="Select file…"
               />
             </div>
-            {btn(
-              <>
-                <Download size={13} /> Download
-              </>,
-              () => selectedHfUrl && downloadModel(selectedHfUrl),
-              'primary',
-              !selectedHfUrl,
-            )}
+            <button
+              onClick={() => selectedHfUrl && downloadModel(selectedHfUrl)}
+              disabled={!selectedHfUrl}
+              className="flex items-center gap-1.5 rounded-lg bg-[var(--accent)] px-3.5 py-2 text-[0.8rem] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              <Download size={13} /> Download
+            </button>
           </div>
         )}
 
-        {/* Direct URL */}
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div className="flex gap-2">
           <input
             type="text"
             placeholder="Direct URL (https://…)"
             value={directUrl}
             onChange={(e) => setDirectUrl(e.target.value)}
-            style={{ flex: 1, padding: '8px 12px', fontSize: '0.83rem' }}
+            className={baseInputClass}
           />
-          {btn(
-            <>
-              <Download size={13} /> URL
-            </>,
-            () => {
+          <button
+            onClick={() => {
               if (directUrl) {
                 downloadModel(directUrl);
                 setDirectUrl('');
               }
-            },
-            'ghost',
-            !directUrl.trim(),
-          )}
+            }}
+            disabled={!directUrl.trim()}
+            className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--bg-hover)] px-3.5 py-2 text-[0.8rem] font-semibold text-[var(--text-secondary)] disabled:cursor-not-allowed disabled:opacity-45"
+          >
+            <Download size={13} /> URL
+          </button>
         </div>
       </section>
 
-      {/* Active downloads */}
       {activeJobs.length > 0 && (
         <section>
-          {sectionTitle('Active Downloads')}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {activeJobs.map((job, i) => (
+          <div className="mb-2.5">
+            <span className="text-[0.78rem] font-semibold uppercase tracking-[0.06em] text-[var(--text-tertiary)]">
+              Active Downloads
+            </span>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            {activeJobs.map((job) => (
               <div
                 key={job.id}
-                style={{
-                  background: 'var(--bg-elevated)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 10,
-                  padding: '12px 14px',
-                  animation: `fadeIn 0.2s ${i * 0.05}s both`,
-                }}
+                className="rounded-[10px] border border-[var(--border)] bg-[var(--bg-elevated)] px-3.5 py-3"
               >
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginBottom: 8,
-                  }}
-                >
+                <div className="mb-2 flex items-center justify-between">
                   <span
-                    style={{
-                      fontSize: '0.83rem',
-                      fontWeight: 500,
-                      color: 'var(--text-primary)',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      maxWidth: '180px',
-                    }}
+                    className="max-w-[180px] truncate text-[0.83rem] font-medium text-[var(--text-primary)]"
                     title={job.filename}
                   >
                     {job.filename}
@@ -516,37 +266,17 @@ export const TabModels: React.FC = () => {
                   {job.status !== 'done' && job.status !== 'cancelled' && (
                     <button
                       onClick={() => cancelDownload(job.id)}
-                      style={{
-                        fontSize: '0.75rem',
-                        color: 'var(--danger)',
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                      }}
+                      className="text-[0.75rem] text-[var(--danger)]"
                     >
                       Cancel
                     </button>
                   )}
                 </div>
-                {/* Progress bar */}
-                <div
-                  style={{
-                    background: 'var(--bg-base)',
-                    borderRadius: 4,
-                    height: 6,
-                    overflow: 'hidden',
-                    marginBottom: 6,
-                  }}
-                >
+
+                <div className="mb-1.5 h-1.5 overflow-hidden rounded bg-[var(--bg-base)]">
                   <div
-                    className={
-                      job.status === 'downloading'
-                        ? 'progress-bar-animated'
-                        : ''
-                    }
+                    className={job.status === 'downloading' ? 'progress-bar-animated h-full rounded' : 'h-full rounded'}
                     style={{
-                      height: '100%',
-                      borderRadius: 4,
                       width: `${Math.max(0, Math.min(100, job.progress * 100))}%`,
                       background:
                         job.status === 'error'
@@ -558,22 +288,15 @@ export const TabModels: React.FC = () => {
                     }}
                   />
                 </div>
-                <div
-                  style={{
-                    fontSize: '0.75rem',
-                    color: 'var(--text-tertiary)',
-                    fontFamily: 'monospace',
-                  }}
-                >
+
+                <div className="font-mono text-[0.75rem] text-[var(--text-tertiary)]">
                   {job.status === 'downloading' &&
                     `${(job.speed / 1024 / 1024).toFixed(2)} MB/s · ETA ${Math.round(job.eta)}s · ${(job.progress * 100).toFixed(1)}%`}
                   {job.status === 'done' && (
-                    <span style={{ color: 'var(--success)' }}>✓ Complete</span>
+                    <span className="text-[var(--success)]">✓ Complete</span>
                   )}
                   {job.status === 'error' && (
-                    <span style={{ color: 'var(--danger)' }}>
-                      Error: {job.error}
-                    </span>
+                    <span className="text-[var(--danger)]">Error: {job.error}</span>
                   )}
                   {job.status === 'cancelled' && <span>Cancelled</span>}
                   {job.status === 'queued' && <span>Queued…</span>}

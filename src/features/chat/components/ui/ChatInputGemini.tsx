@@ -31,20 +31,20 @@ interface FileInfo {
 function getFileIcon(file: File) {
   const t = file.type;
   if (t.startsWith('image/'))
-    return <ImageIcon size={15} style={{ color: '#3b82f6' }} />;
+    return <ImageIcon size={15} className="text-blue-500" />;
   if (t.startsWith('video/'))
-    return <Film size={15} style={{ color: '#8b5cf6' }} />;
+    return <Film size={15} className="text-violet-500" />;
   if (t.startsWith('audio/'))
-    return <Music size={15} style={{ color: '#ec4899' }} />;
+    return <Music size={15} className="text-pink-500" />;
   if (t === 'application/pdf')
-    return <FileText size={15} style={{ color: '#ef4444' }} />;
+    return <FileText size={15} className="text-red-500" />;
   if (
     t.includes('zip') ||
     t.includes('tar') ||
     t.includes('rar') ||
     t.includes('7z')
   )
-    return <FileArchive size={15} style={{ color: '#f59e0b' }} />;
+    return <FileArchive size={15} className="text-amber-500" />;
   if (
     t.includes('javascript') ||
     t.includes('typescript') ||
@@ -54,8 +54,8 @@ function getFileIcon(file: File) {
     t.includes('html') ||
     t.includes('css')
   )
-    return <FileCode size={15} style={{ color: '#10b981' }} />;
-  return <FileText size={15} style={{ color: 'var(--text-tertiary)' }} />;
+    return <FileCode size={15} className="text-emerald-500" />;
+  return <FileText size={15} className="text-[var(--text-tertiary)]" />;
 }
 
 function formatBytes(bytes: number) {
@@ -316,7 +316,7 @@ const VoicePopup: React.FC<VoicePopupProps> = ({
                 }}
               />
             ) : voiceState === 'error' ? (
-              <MicOff size={22} style={{ color: 'var(--danger)' }} />
+              <MicOff size={22} className="text-[var(--danger)]" />
             ) : (
               <Mic size={22} style={{ color: stateColor[voiceState] }} />
             )}
@@ -358,7 +358,7 @@ const VoicePopup: React.FC<VoicePopupProps> = ({
         </div>
 
         {/* Status label */}
-        <div style={{ textAlign: 'center' }}>
+        <div className="text-center">
           <p
             style={{
               fontSize: '0.9rem',
@@ -643,7 +643,7 @@ export const ChatInputGemini: React.FC<ChatInputProps> = ({
                     >
                       {getFileIcon(fi.file)}
                     </div>
-                    <div style={{ minWidth: 0 }}>
+                    <div className="min-w-0">
                       <div
                         style={{
                           fontSize: '0.78rem',
@@ -791,7 +791,7 @@ export const ChatInputGemini: React.FC<ChatInputProps> = ({
               if (e.target.files) addFiles(Array.from(e.target.files));
               if (fileInputRef.current) fileInputRef.current.value = '';
             }}
-            style={{ display: 'none' }}
+            className="hidden"
           />
 
           {/* Textarea */}
@@ -841,12 +841,12 @@ export const ChatInputGemini: React.FC<ChatInputProps> = ({
                 animation: 'fadeIn 0.2s both',
               }}
             >
-              <div style={{ display: 'flex', gap: 4 }}>
+              <div className="flex gap-1">
                 <span className="typing-dot" />
                 <span className="typing-dot" />
                 <span className="typing-dot" />
               </div>
-              <span style={{ fontStyle: 'italic' }}>Generating response…</span>
+              <span className="italic">Generating response…</span>
             </div>
           )}
 
@@ -921,7 +921,7 @@ export const ChatInputGemini: React.FC<ChatInputProps> = ({
               {isGenerating ? (
                 <Square size={13} fill="currentColor" />
               ) : (
-                <Send size={14} style={{ marginLeft: 1 }} />
+                <Send size={14} className="ml-px" />
               )}
             </button>
           </div>
@@ -949,7 +949,7 @@ export const ChatInputGemini: React.FC<ChatInputProps> = ({
             </span>
           ) : files.length > 0 ? (
             <span
-              style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}
+              className="text-[0.72rem] text-[var(--text-tertiary)]"
             >
               {files.length} file{files.length > 1 ? 's' : ''} attached
             </span>
