@@ -1,6 +1,15 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useHistory } from '../hooks/useHistory';
-import { Modal } from '../../../components/ui/Modal';
+import { Modal } from '@/components/ui/Modal';
+import {
+  Plus,
+  Edit2,
+  Trash2,
+  Search,
+  MessageSquare,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react';
 
 export const ChatHistoryTab: React.FC = () => {
   const {
@@ -12,10 +21,12 @@ export const ChatHistoryTab: React.FC = () => {
     renameSession,
     deleteSession,
     getChatHistory,
+    lastSessionKey,
   } = useHistory();
 
-  const [selected, setSelected] = useState<string | null>(null);
-
+  const [selected, setSelected] = useState<string | null>(() =>
+    localStorage.getItem(lastSessionKey),
+  );
   const [createOpen, setCreateOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -23,15 +34,33 @@ export const ChatHistoryTab: React.FC = () => {
   const [formTitle, setFormTitle] = useState('');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
-  const pageSize = 10;
+  const pageSize = 12;
 
   useEffect(() => {
     fetchSessions();
   }, [fetchSessions]);
-
   useEffect(() => {
     setPage(1);
   }, [search]);
+
+  useEffect(() => {
+    if (sessions.length === 0) return;
+    const savedId = localStorage.getItem(lastSessionKey);
+    if (savedId && sessions.some((s) => s.id === savedId) && !selected) {
+      setSelected(savedId);
+      getChatHistory(savedId);
+    }
+  }, [sessions]);
+
+  useEffect(() => {
+    if (
+      selected &&
+      sessions.length > 0 &&
+      !sessions.some((s) => s.id === selected)
+    ) {
+      setSelected(null);
+    }
+  }, [sessions]);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return sessions;
@@ -43,180 +72,362 @@ export const ChatHistoryTab: React.FC = () => {
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const paged = filtered.slice((page - 1) * pageSize, page * pageSize);
 
-  const openCreate = () => {
-    setFormTitle('New Chat');
-    setCreateOpen(true);
+  const handleSelect = async (id: string) => {
+    setSelected(id);
+    await getChatHistory(id);
   };
 
   const handleCreate = async () => {
     if (!formTitle.trim()) return;
-    await createSession(formTitle.trim());
     setCreateOpen(false);
+    await createSession(formTitle.trim());
     setFormTitle('');
-  };
-
-  const openRename = (id: string, currentTitle: string) => {
-    setPendingId(id);
-    setFormTitle(currentTitle);
-    setRenameOpen(true);
   };
 
   const handleRename = async () => {
     if (!pendingId || !formTitle.trim()) return;
-    await renameSession(pendingId, formTitle.trim());
     setRenameOpen(false);
+    await renameSession(pendingId, formTitle.trim());
     setPendingId(null);
     setFormTitle('');
   };
 
-  const openDelete = (id: string) => {
-    setPendingId(id);
-    setDeleteOpen(true);
-  };
-
   const handleDelete = async () => {
     if (!pendingId) return;
-    await deleteSession(pendingId);
-    if (selected === pendingId) setSelected(null);
     setDeleteOpen(false);
+    if (selected === pendingId) setSelected(null);
+    await deleteSession(pendingId);
     setPendingId(null);
   };
 
-  const handleSelect = async (id: string) => {
-    setSelected(id);
-
-    if (getChatHistory) {
-      await getChatHistory(id);
-    }
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    padding: '8px 12px',
+    fontSize: '0.83rem',
+    background: 'var(--bg-elevated)',
+    border: '1px solid var(--border)',
+    borderRadius: 8,
+    color: 'var(--text-primary)',
+    outline: 'none',
+    transition: 'border-color 0.15s, box-shadow 0.15s',
   };
 
   return (
-    <div className="flex flex-col  bg-slate-800 p-4 rounded-lg text-slate-200 rounded-xl border border-neutral-200/20 p-2 shadow-sm space-y-1">
-      {/* 🟢 ส่วนจัดการด้านบน (Top Controls) */}
-      <div className="flex flex-col gap-3 mb-4">
-        <div className="flex items-center justify-between">
-          <strong className="text-lg font-semibold">Chat History</strong>
-          <button
-            onClick={openCreate}
-            className="text-sm px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded transition-colors"
-          >
-            + New Chat
-          </button>
-        </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {/* Header */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: 2,
+        }}
+      >
+        <span
+          style={{
+            fontSize: '0.78rem',
+            fontWeight: 600,
+            textTransform: 'uppercase',
+            letterSpacing: '0.06em',
+            color: 'var(--text-tertiary)',
+          }}
+        >
+          {loading
+            ? '...'
+            : `${filtered.length} Session${filtered.length !== 1 ? 's' : ''}`}
+        </span>
+        <button
+          onClick={() => {
+            setFormTitle('New Chat');
+            setCreateOpen(true);
+          }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 5,
+            padding: '6px 12px',
+            borderRadius: 8,
+            fontSize: '0.78rem',
+            fontWeight: 600,
+            background: 'var(--accent)',
+            color: '#fff',
+            border: 'none',
+            cursor: 'pointer',
+            boxShadow:
+              '0 1px 4px color-mix(in srgb, var(--accent) 35%, transparent)',
+            transition: 'opacity 0.15s',
+          }}
+        >
+          <Plus size={13} /> New Chat
+        </button>
+      </div>
 
+      {/* Search */}
+      <div style={{ position: 'relative' }}>
+        <Search
+          size={13}
+          style={{
+            position: 'absolute',
+            left: 10,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            color: 'var(--text-tertiary)',
+            pointerEvents: 'none',
+          }}
+        />
         <input
-          placeholder="Search sessions..."
+          placeholder="Search sessions…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full text-sm px-3 py-2 rounded bg-slate-900 border border-slate-700 text-slate-200 outline-none focus:border-blue-500 transition-colors"
+          style={{ ...inputStyle, paddingLeft: 30 }}
         />
       </div>
 
-      {loading && (
-        <div className="text-sm text-slate-400 my-2">Loading sessions...</div>
+      {error && (
+        <div
+          style={{
+            color: 'var(--danger)',
+            fontSize: '0.8rem',
+            padding: '4px 0',
+          }}
+        >
+          {error}
+        </div>
       )}
-      {error && <div className="text-sm text-red-400 my-2">{error}</div>}
 
-      {/* 🟢 รายการแชท (ยืดลงด้านล่าง) */}
-      <div className="flex-1 overflow-y-auto pr-1 space-y-2">
-        {paged.length === 0 && !loading && (
-          <div className="text-sm text-slate-500 text-center mt-4">
-            No sessions found.
-          </div>
-        )}
-
-        {paged.map((s) => (
+      {/* Session list */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {loading && sessions.length === 0 ? (
           <div
-            key={s.id}
-            onClick={() => handleSelect(s.id)}
-            className={`group p-3 rounded-md cursor-pointer border transition-all ${
-              selected === s.id
-                ? 'bg-slate-700 border-slate-500 shadow-sm'
-                : 'bg-slate-900 border-transparent hover:bg-slate-700 hover:border-slate-600'
-            }`}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '16px 0',
+              color: 'var(--text-tertiary)',
+              fontSize: '0.83rem',
+            }}
           >
-            <div className="flex justify-between items-start">
-              <div className="flex-1 min-w-0 pr-2">
-                <div className="font-medium text-slate-100 truncate">
-                  {s.title}
-                </div>
-                <div className="text-xs text-slate-400 mt-1">
-                  {s.updated_at
-                    ? new Date(s.updated_at * 1000).toLocaleString()
-                    : ''}
-                </div>
-              </div>
-
-              {/* ปุ่ม Action จะแสดงชัดขึ้นเมื่อเอาเมาส์ไปชี้ (Hover) */}
-              <div className="flex flex-col gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    openRename(s.id, s.title);
-                  }}
-                  className="text-xs px-2 py-1 bg-slate-600 hover:bg-slate-500 rounded text-slate-200"
-                >
-                  Rename
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    openDelete(s.id);
-                  }}
-                  className="text-xs px-2 py-1 bg-red-900 hover:bg-red-800 rounded text-red-200"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
+            <span
+              style={{
+                width: 14,
+                height: 14,
+                border: '2px solid var(--accent)',
+                borderTopColor: 'transparent',
+                borderRadius: '50%',
+                display: 'inline-block',
+                animation: 'spinSlow 1s linear infinite',
+              }}
+            />
+            Loading…
           </div>
-        ))}
+        ) : paged.length === 0 ? (
+          <div
+            style={{
+              textAlign: 'center',
+              padding: '20px 0',
+              color: 'var(--text-tertiary)',
+              fontSize: '0.83rem',
+            }}
+          >
+            {search ? 'No results' : 'No sessions yet'}
+          </div>
+        ) : (
+          paged.map((s, i) => {
+            const isActive = selected === s.id;
+            return (
+              <div
+                key={s.id}
+                onClick={() => handleSelect(s.id)}
+                className="group"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '9px 10px',
+                  borderRadius: 10,
+                  cursor: 'pointer',
+                  background: isActive ? 'var(--accent-subtle)' : 'transparent',
+                  border: `1px solid ${isActive ? 'color-mix(in srgb, var(--accent) 28%, transparent)' : 'transparent'}`,
+                  transition: 'background 0.14s, border-color 0.14s',
+                  animation: `fadeIn 0.2s ${i * 0.02}s both`,
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive)
+                    e.currentTarget.style.background = 'var(--bg-hover)';
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive)
+                    e.currentTarget.style.background = 'transparent';
+                }}
+              >
+                <MessageSquare
+                  size={13}
+                  style={{
+                    color: isActive ? 'var(--accent)' : 'var(--text-tertiary)',
+                    flexShrink: 0,
+                    marginRight: 9,
+                  }}
+                />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div
+                    style={{
+                      fontSize: '0.84rem',
+                      fontWeight: isActive ? 600 : 400,
+                      color: isActive ? 'var(--accent)' : 'var(--text-primary)',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {s.title}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: '0.7rem',
+                      color: 'var(--text-tertiary)',
+                      marginTop: 1,
+                    }}
+                  >
+                    {s.updated_at
+                      ? new Date(s.updated_at * 1000).toLocaleDateString(
+                          undefined,
+                          { month: 'short', day: 'numeric' },
+                        )
+                      : ''}
+                  </div>
+                </div>
+                {/* Hover actions */}
+                <div className="group-hover:opacity-100 flex items-center gap-2 opacity-0 transition-opacity duration-140">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPendingId(s.id);
+                      setFormTitle(s.title);
+                      setRenameOpen(true);
+                    }}
+                    className="
+                    flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-[7px] cursor-pointer
+                    border-[1px] border-solid border-stone-500/30
+                    bg-stone-500/30
+                    text-stone-500
+                    transition-all duration-120
+                    hover:bg-stone-500
+                    hover:text-white
+                  "
+                    title="Rename"
+                  >
+                    <Edit2 size={12} />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPendingId(s.id);
+                      setDeleteOpen(true);
+                    }}
+                    className="
+                    flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-[7px] cursor-pointer
+                    border-[1px] border-solid border-[color-mix(in_srgb,var(--danger)_30%,transparent)]
+                    bg-[color-mix(in_srgb,var(--danger)_8%,transparent)]
+                    text-[var(--danger)]
+                    transition-all duration-120
+                    hover:bg-[var(--danger)]
+                    hover:text-white
+                  "
+                    title="Delete"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
 
-      {/* 🟢 Pagination */}
+      {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-700 text-sm text-slate-400">
-          <div>
-            Page {page} of {totalPages}
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="px-3 py-1 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed rounded"
-            >
-              Prev
-            </button>
-            <button
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages}
-              className="px-3 py-1 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed rounded"
-            >
-              Next
-            </button>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingTop: 8,
+            borderTop: '1px solid var(--border)',
+            marginTop: 2,
+          }}
+        >
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
+            {page} / {totalPages}
+          </span>
+          <div style={{ display: 'flex', gap: 4 }}>
+            {[
+              {
+                icon: <ChevronLeft size={13} />,
+                action: () => setPage((p) => Math.max(1, p - 1)),
+                disabled: page === 1,
+              },
+              {
+                icon: <ChevronRight size={13} />,
+                action: () => setPage((p) => Math.min(totalPages, p + 1)),
+                disabled: page === totalPages,
+              },
+            ].map(({ icon, action, disabled }, i) => (
+              <button
+                key={i}
+                onClick={action}
+                disabled={disabled}
+                style={{
+                  width: 26,
+                  height: 26,
+                  borderRadius: 7,
+                  border: '1px solid var(--border)',
+                  background: 'var(--bg-elevated)',
+                  color: 'var(--text-secondary)',
+                  cursor: disabled ? 'not-allowed' : 'pointer',
+                  opacity: disabled ? 0.4 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {icon}
+              </button>
+            ))}
           </div>
         </div>
       )}
 
-      {/* 🟢 Modals */}
+      {/* Modals */}
       <Modal
         isOpen={createOpen}
         onClose={() => setCreateOpen(false)}
         onConfirm={handleCreate}
-        title="Create Session"
+        title="New Chat"
         confirmText="Create"
         confirmVariant="primary"
       >
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-slate-700">
+        <div>
+          <label
+            style={{
+              display: 'block',
+              fontSize: '0.8rem',
+              fontWeight: 500,
+              color: 'var(--text-secondary)',
+              marginBottom: 6,
+            }}
+          >
             Chat Title
           </label>
           <input
             value={formTitle}
             onChange={(e) => setFormTitle(e.target.value)}
-            placeholder="Enter a title..."
-            className="w-full p-2 rounded border border-neutral-300 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
             autoFocus
+            style={inputStyle}
+            placeholder="Enter a title…"
           />
         </div>
       </Modal>
@@ -229,15 +440,24 @@ export const ChatHistoryTab: React.FC = () => {
         confirmText="Save"
         confirmVariant="primary"
       >
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-slate-700">
+        <div>
+          <label
+            style={{
+              display: 'block',
+              fontSize: '0.8rem',
+              fontWeight: 500,
+              color: 'var(--text-secondary)',
+              marginBottom: 6,
+            }}
+          >
             New Title
           </label>
           <input
             value={formTitle}
             onChange={(e) => setFormTitle(e.target.value)}
-            className="w-full p-2 rounded border border-neutral-300 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            onKeyDown={(e) => e.key === 'Enter' && handleRename()}
             autoFocus
+            style={inputStyle}
           />
         </div>
       </Modal>
@@ -250,9 +470,8 @@ export const ChatHistoryTab: React.FC = () => {
         confirmText="Delete"
         confirmVariant="danger"
       >
-        <p className="text-slate-700">
-          Are you sure you want to delete this session? This action cannot be
-          undone.
+        <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+          This session will be permanently deleted and cannot be recovered.
         </p>
       </Modal>
     </div>

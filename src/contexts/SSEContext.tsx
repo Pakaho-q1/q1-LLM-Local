@@ -20,29 +20,39 @@ enum ConnectionState {
 interface SSEContextType {
   isConnected: boolean;
   connectionState: ConnectionState;
-  sendPayload: (payload: Record<string, unknown>) => Promise<any>;
-  lastMessage: any | null;
   error: string | null;
-  retry: () => void;
-  currentConversation?: string | null;
-  setCurrentConversation?: (id: string | null) => void;
+  lastMessage: any | null;
+  currentConversation: string | null;
 
+  sendPayload: (payload: Record<string, unknown>) => Promise<any>;
+  sendForm: (endpoint: string, formData: FormData) => Promise<any>;
+  setCurrentConversation?: (id: string | null) => void;
   subscribeToChat: (callback: (msg: any) => void) => () => void;
+  retry: () => void;
 }
 
 const SSEContext = createContext<SSEContextType | null>(null);
 
-const CLIENT_ID = `client_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+const CLIENT_ID_KEY = 'v1_client_id';
+function getOrCreateClientId(): string {
+  let id = localStorage.getItem(CLIENT_ID_KEY);
+  if (!id) {
+    id = `client_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+    localStorage.setItem(CLIENT_ID_KEY, id);
+  }
+  return id;
+}
+const CLIENT_ID = getOrCreateClientId();
+
 const RECONNECT_DELAY = 3000;
 const MAX_RECONNECT_ATTEMPTS = 5;
-
 const genRequestId = () =>
   `req_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 
 export const SSEProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  const [isConnected, setIsConnected] = useState<boolean>(false);
+  const [isConnected, setIsConnected] = useState(false);
   const [connectionState, setConnectionState] = useState<ConnectionState>(
     ConnectionState.DISCONNECTED,
   );
@@ -53,19 +63,17 @@ export const SSEProvider: React.FC<{ children: ReactNode }> = ({
   );
 
   const esRef = useRef<EventSource | null>(null);
-  const reconnectAttemptsRef = useRef<number>(0);
-  const lastActionRef = useRef<string>('');
-
+  const reconnectAttemptsRef = useRef(0);
   const chatListenersRef = useRef<Set<(msg: any) => void>>(new Set());
+
+  const notifyChatListeners = (data: any) => {
+    chatListenersRef.current.forEach((cb) => cb(data));
+  };
 
   const subscribeToChat = useCallback((cb: (msg: any) => void) => {
     chatListenersRef.current.add(cb);
     return () => chatListenersRef.current.delete(cb);
   }, []);
-
-  const notifyChatListeners = (data: any) => {
-    chatListenersRef.current.forEach((cb) => cb(data));
-  };
 
   const connect = useCallback(() => {
     if (esRef.current) return;
@@ -90,41 +98,16 @@ export const SSEProvider: React.FC<{ children: ReactNode }> = ({
             notifyChatListeners('[DONE]');
             return;
           }
-
           const data = JSON.parse(ev.data);
-          setLastMessage(data);
-
-          if (data.choices && Array.isArray(data.choices)) {
-            notifyChatListeners(data);
-            return;
-          }
-
-          if (data.type === 'session_deleted') {
-            setCurrentConversation((prev) => {
-              if (prev === data.conversation_id) {
-                return null;
-              }
-
-              return prev;
-            });
-          }
-
-          const chatTypes = ['chunk', 'done', 'error', 'status'];
-          if (chatTypes.includes(data.type)) notifyChatListeners(data);
-
-          if (data.type === 'session_created' && data.data?.id)
-            setCurrentConversation(data.data.id);
-          if (data.type === 'chat_history' && data.conversation_id)
-            setCurrentConversation(data.conversation_id);
-        } catch (err) {
-          console.error('❌ Failed to parse SSE message:', err);
-        }
+          processIncoming(data);
+        } catch {}
       };
 
-      const sseEventTypes = [
+      const namedEvents = [
         'chunk',
         'done',
         'status',
+        'error',
         'sessions_list',
         'session_created',
         'session_renamed',
@@ -138,57 +121,32 @@ export const SSEProvider: React.FC<{ children: ReactNode }> = ({
         'presets',
         'preset_data',
         'success',
-        'error',
       ];
 
-      sseEventTypes.forEach((evt) => {
+      namedEvents.forEach((evt) => {
         es.addEventListener(evt, (ev: MessageEvent) => {
           try {
-            const rawData = (ev as any).data;
-            if (rawData === '[DONE]') {
+            if ((ev as any).data === '[DONE]') {
               notifyChatListeners('[DONE]');
               return;
             }
-
-            const data = JSON.parse(rawData);
-            setLastMessage(data);
-
-            if (data.type === 'session_deleted') {
-              setCurrentConversation?.((prev) => {
-                if (prev === data.conversation_id) {
-                  return null;
-                }
-                return prev;
-              });
-            }
-
-            const chatTypes = ['chunk', 'done', 'error', 'status'];
-            if (chatTypes.includes(data.type)) notifyChatListeners(data);
-
-            if (data.type === 'session_created' && data.data?.id)
-              setCurrentConversation?.(data.data.id);
-            if (data.type === 'chat_history' && data.conversation_id)
-              setCurrentConversation?.(data.conversation_id);
-          } catch (err) {
-            console.error('❌ Failed to parse named SSE message:', err);
-          }
+            const data = JSON.parse((ev as any).data);
+            processIncoming(data);
+          } catch {}
         });
       });
 
-      es.addEventListener('error', (ev) => {
-        console.error('❌ SSE error', ev);
+      es.addEventListener('error', () => {
         setConnectionState(ConnectionState.ERROR);
-        setError('SSE connection error');
         setIsConnected(false);
+        setError('SSE connection error');
         if (reconnectAttemptsRef.current < MAX_RECONNECT_ATTEMPTS) {
           reconnectAttemptsRef.current++;
           const delay =
             RECONNECT_DELAY * Math.pow(1.5, reconnectAttemptsRef.current - 1);
           setTimeout(() => {
-            if (esRef.current) {
-              esRef.current.close();
-              esRef.current = null;
-            }
+            esRef.current?.close();
+            esRef.current = null;
             connect();
           }, delay);
         }
@@ -196,25 +154,52 @@ export const SSEProvider: React.FC<{ children: ReactNode }> = ({
 
       esRef.current = es;
     } catch (err) {
-      console.error('❌ SSE connection failed:', err);
       setError(err instanceof Error ? err.message : 'Connection failed');
       setConnectionState(ConnectionState.ERROR);
     }
   }, []);
 
+  const processIncoming = (data: any) => {
+    setLastMessage(data);
+
+    if (data.type === 'session_deleted') {
+      setCurrentConversation((prev) =>
+        prev === data.conversation_id ? null : prev,
+      );
+    }
+    if (data.type === 'session_created' && data.data?.id) {
+      setCurrentConversation(data.data.id);
+    }
+    if (data.type === 'chat_history' && data.conversation_id) {
+      setCurrentConversation(data.conversation_id);
+    }
+
+    const chatTypes = ['chunk', 'done', 'error', 'status'];
+    if (chatTypes.includes(data.type)) notifyChatListeners(data);
+
+    if (data.choices && Array.isArray(data.choices)) notifyChatListeners(data);
+  };
+
+  useEffect(() => {
+    connect();
+    return () => {
+      esRef.current?.close();
+      esRef.current = null;
+    };
+  }, [connect]);
+
   const sendPayload = useCallback(
     async (payload: Record<string, unknown>): Promise<any> => {
       const action = (payload.action as string) || '';
-      lastActionRef.current = action;
 
       try {
         if (action === 'chat') {
-          const req = { ...payload } as any;
+          const req: any = { ...payload, client_id: CLIENT_ID };
           if (!req.request_id) req.request_id = genRequestId();
           const resp = await fetch(`${API_BASE}/sse/chat`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...req, client_id: CLIENT_ID }),
+            body: JSON.stringify(req),
           });
           return resp.json();
         }
@@ -226,8 +211,31 @@ export const SSEProvider: React.FC<{ children: ReactNode }> = ({
         });
         return resp.json();
       } catch (err) {
-        console.error('❌ Failed to send payload via REST:', err);
-        setError(err instanceof Error ? err.message : 'Send failed');
+        const msg = err instanceof Error ? err.message : 'Send failed';
+        setError(msg);
+        throw err;
+      }
+    },
+    [],
+  );
+
+  const sendForm = useCallback(
+    async (endpoint: string, formData: FormData): Promise<any> => {
+      formData.set('client_id', CLIENT_ID);
+
+      try {
+        const resp = await fetch(`${API_BASE}/api/${endpoint}`, {
+          method: 'POST',
+
+          body: formData,
+        });
+        if (!resp.ok)
+          throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
+        return resp.json();
+      } catch (err) {
+        const msg =
+          err instanceof Error ? err.message : `sendForm(${endpoint}) failed`;
+        setError(msg);
         throw err;
       }
     },
@@ -236,42 +244,29 @@ export const SSEProvider: React.FC<{ children: ReactNode }> = ({
 
   const retry = useCallback(() => {
     reconnectAttemptsRef.current = 0;
-    if (esRef.current) {
-      esRef.current.close();
-      esRef.current = null;
-    }
+    esRef.current?.close();
+    esRef.current = null;
     connect();
-  }, [connect]);
-
-  useEffect(() => {
-    connect();
-    return () => {
-      if (esRef.current) {
-        esRef.current.close();
-        esRef.current = null;
-      }
-    };
   }, [connect]);
 
   const value: SSEContextType = {
     isConnected,
     connectionState,
-    sendPayload,
-    lastMessage,
     error,
-    retry,
+    lastMessage,
     currentConversation,
+    sendPayload,
+    sendForm,
     setCurrentConversation,
     subscribeToChat,
+    retry,
   };
 
   return <SSEContext.Provider value={value}>{children}</SSEContext.Provider>;
 };
 
 export const useSSE = (): SSEContextType => {
-  const context = useContext(SSEContext);
-  if (!context) {
-    throw new Error('useSSE must be used within a SSEProvider');
-  }
-  return context;
+  const ctx = useContext(SSEContext);
+  if (!ctx) throw new Error('useSSE must be used within SSEProvider');
+  return ctx;
 };

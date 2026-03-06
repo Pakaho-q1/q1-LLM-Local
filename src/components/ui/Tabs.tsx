@@ -1,4 +1,3 @@
-// src/components/ui/Tabs.tsx
 import React, { useEffect, useRef, useState } from 'react';
 
 export interface TabItem {
@@ -11,73 +10,65 @@ interface TabsProps {
   tabs: TabItem[];
   activeTab: string;
   onChange: (id: string) => void;
-  variant?: 'primary' | 'secondary';
 }
 
-export const Tabs: React.FC<TabsProps> = ({
-  tabs,
-  activeTab,
-  onChange,
-  variant = 'primary',
-}) => {
+export const Tabs: React.FC<TabsProps> = ({ tabs, activeTab, onChange }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [indicatorStyle, setIndicatorStyle] = useState({
-    width: 0,
-    left: 0,
-  });
+  const [indicator, setIndicator] = useState({ width: 0, left: 0 });
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
-
-    const activeButton = container.querySelector<HTMLButtonElement>(
+    const btn = container.querySelector<HTMLButtonElement>(
       `[data-tab="${activeTab}"]`,
     );
-
-    if (activeButton) {
-      setIndicatorStyle({
-        width: activeButton.offsetWidth,
-        left: activeButton.offsetLeft,
-      });
-    }
+    if (btn) setIndicator({ width: btn.offsetWidth, left: btn.offsetLeft });
   }, [activeTab, tabs]);
-
-  const baseStyle =
-    variant === 'primary'
-      ? 'text-gray-50 hover:text-gray-400'
-      : 'text-gray-50 hover:text-gray-400';
 
   return (
     <div
       ref={containerRef}
-      className="relative flex  border-neutral-200 bg-transparent/30"
+      className="relative flex"
+      style={{
+        borderBottom: '1px solid var(--border)',
+        background: 'var(--bg-sidebar)',
+        flexShrink: 0,
+      }}
     >
       {tabs.map((tab) => {
         const isActive = activeTab === tab.id;
-
         return (
           <button
             key={tab.id}
             data-tab={tab.id}
             onClick={() => onChange(tab.id)}
-            className={`
-              relative px-5 py-3 text-sm font-medium
-              transition-colors duration-200
-              flex items-center gap-2
-              ${baseStyle}
-              ${isActive ? 'text-blue-600' : ''}
-            `}
+            className="relative flex items-center gap-1.5 px-4 py-3 text-xs font-semibold transition-colors duration-150"
+            style={{
+              color: isActive ? 'var(--accent)' : 'var(--text-secondary)',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              letterSpacing: '0.01em',
+              textTransform: 'uppercase',
+            }}
           >
-            {tab.icon && <span className="opacity-80">{tab.icon}</span>}
+            {tab.icon}
             {tab.label}
           </button>
         );
       })}
+      {/* Sliding indicator */}
       <div
-        className="absolute bottom-0 h-[2px] bg-blue-600 transition-all duration-300 ease-out"
         style={{
-          width: indicatorStyle.width,
-          transform: `translateX(${indicatorStyle.left}px)`,
+          position: 'absolute',
+          bottom: 0,
+          height: '2px',
+          background: 'var(--accent)',
+          borderRadius: '2px 2px 0 0',
+          width: indicator.width,
+          transform: `translateX(${indicator.left}px)`,
+          transition:
+            'transform 0.28s cubic-bezier(0.16,1,0.3,1), width 0.28s cubic-bezier(0.16,1,0.3,1)',
         }}
       />
     </div>

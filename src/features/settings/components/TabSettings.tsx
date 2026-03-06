@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { useSettings as useSettingsContext } from '../../../contexts/SettingsContext';
+import { useSettings as useSettingsContext } from '@/contexts/SettingsContext';
 import { useSettings as usePresetLogic } from '../hooks/useSettings';
-import { Tooltip } from '../../../components/ui/Tooltip';
-import { Combobox } from '../../../components/ui/Combobox';
-import { Modal } from '../../../components/ui/Modal';
+import { Tooltip } from '@/components/ui/Tooltip';
+import { Combobox } from '@/components/ui/Combobox';
+import { Modal } from '@/components/ui/Modal';
+import { X, Save, Trash2, RefreshCw, RotateCcw } from 'lucide-react';
 
 interface SettingSliderProps {
   label: string;
@@ -24,36 +25,123 @@ const SettingSlider: React.FC<SettingSliderProps> = ({
   onChange,
   tooltip,
 }) => (
-  <div className="flex flex-col gap-1.5 mb-3">
-    <div className="flex justify-between items-center">
-      {/* 2. 🟢 ถ้ามีส่ง tooltip มา ให้เอา Tooltip มาครอบ Label */}
+  <div
+    style={{
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 6,
+      marginBottom: 14,
+    }}
+  >
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+      }}
+    >
       {tooltip ? (
         <Tooltip content={tooltip} position="right">
-          <label className="text-xs font-medium text-slate-300 border-b border-dotted border-neutral-400 cursor-help">
+          <label
+            style={{
+              fontSize: '0.8rem',
+              fontWeight: 500,
+              color: 'var(--text-secondary)',
+              borderBottom: '1px dotted var(--border-strong)',
+              cursor: 'help',
+            }}
+          >
             {label}
           </label>
         </Tooltip>
       ) : (
-        <label className="text-xs font-medium text-slate-300">{label}</label>
+        <label
+          style={{
+            fontSize: '0.8rem',
+            fontWeight: 500,
+            color: 'var(--text-secondary)',
+          }}
+        >
+          {label}
+        </label>
       )}
-
       <input
         type="number"
         value={value}
+        min={min}
+        max={max}
+        step={step}
         onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
-        className="w-16 text-right text-xs text-black bg-neutral-100/50  rounded px-1 py-0.5 outline-none focus:ring-1 focus:ring-blue-500"
+        style={{
+          width: 64,
+          textAlign: 'right',
+          fontSize: '0.78rem',
+          padding: '3px 8px',
+          borderRadius: 6,
+          background: 'var(--bg-elevated)',
+          border: '1px solid var(--border)',
+          color: 'var(--text-primary)',
+        }}
       />
     </div>
-    <input
-      type="range"
-      min={min}
-      max={max}
-      step={step}
-      value={value}
-      onChange={(e) => onChange(parseFloat(e.target.value))}
-      className="w-full h-1.5 bg-neutral-200/50 rounded-lg appearance-none cursor-pointer accent-blue-600"
-    />
+    <div
+      style={{
+        position: 'relative',
+        height: 20,
+        display: 'flex',
+        alignItems: 'center',
+      }}
+    >
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => onChange(parseFloat(e.target.value))}
+        style={{
+          width: '100%',
+          height: 4,
+          borderRadius: 4,
+          background: `linear-gradient(to right, var(--accent) 0%, var(--accent) ${((value - min) / (max - min)) * 100}%, var(--border-strong) ${((value - min) / (max - min)) * 100}%, var(--border-strong) 100%)`,
+          appearance: 'none',
+          WebkitAppearance: 'none',
+          cursor: 'pointer',
+          outline: 'none',
+          accentColor: 'var(--accent)',
+        }}
+      />
+    </div>
   </div>
+);
+
+const Section: React.FC<{ title: string; children: React.ReactNode }> = ({
+  title,
+  children,
+}) => (
+  <section
+    style={{
+      background: 'var(--bg-elevated)',
+      border: '1px solid var(--border)',
+      borderRadius: 12,
+      padding: '14px 16px',
+      marginBottom: 12,
+    }}
+  >
+    <h3
+      style={{
+        fontSize: '0.75rem',
+        fontWeight: 600,
+        textTransform: 'uppercase',
+        letterSpacing: '0.06em',
+        color: 'var(--text-tertiary)',
+        marginBottom: 14,
+      }}
+    >
+      {title}
+    </h3>
+    {children}
+  </section>
 );
 
 export const TabSettings: React.FC = () => {
@@ -70,66 +158,53 @@ export const TabSettings: React.FC = () => {
   } = usePresetLogic();
   const [newPresetName, setNewPresetName] = useState('');
   const [selectedDropdown, setSelectedDropdown] = useState('');
-
   const [presetToDelete, setPresetToDelete] = useState<string | null>(null);
   const [presetToUpdate, setPresetToUpdate] = useState<string | null>(null);
 
-  const handleLoadPreset = async () => {
-    if (selectedDropdown) {
-      await loadPreset(selectedDropdown);
-    }
-  };
-
-  const handleCreatePreset = async () => {
-    if (!newPresetName.trim()) return;
-    await createPreset(newPresetName, '');
-    setNewPresetName('');
-  };
-
-  const handleDeletePreset = async () => {
-    if (presetToDelete) {
-      await deletePreset(presetToDelete);
-      setPresetToDelete(null);
-    }
-  };
-
-  const handleUpdatePreset = async () => {
-    if (presetToUpdate) {
-      await updatePreset(presetToUpdate, '');
-      setPresetToUpdate(null);
-    }
-  };
-
   return (
-    <div className="space-y-5 pb-10">
-      {/* Error Banner */}
+    <div style={{ paddingBottom: 40 }}>
       {error && (
-        <div className="bg-red-500/20 border border-red-500 text-red-300 px-4 py-2 text-sm rounded-lg flex justify-between items-center">
-          <span>❌ {error}</span>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '10px 14px',
+            borderRadius: 8,
+            marginBottom: 12,
+            background: 'color-mix(in srgb, var(--danger) 10%, transparent)',
+            border:
+              '1px solid color-mix(in srgb, var(--danger) 30%, transparent)',
+            color: 'var(--danger)',
+            fontSize: '0.83rem',
+            animation: 'fadeIn 0.2s both',
+          }}
+        >
+          <span>{error}</span>
           <button
             onClick={clearError}
-            className="text-red-300 hover:text-red-200 font-bold"
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: 'var(--danger)',
+            }}
           >
-            ✕
+            <X size={14} />
           </button>
         </div>
       )}
 
-      {/* 💾 Preset Manager */}
-      <section className="flex flex-col  bg-slate-800 p-4 rounded-lg text-slate-200 rounded-xl border border-neutral-200/20 p-2 shadow-sm space-y-1">
-        <h3 className="text-sm font-bold text-slate-300 flex items-center gap-2 mb-3">
-          💾 Preset Manager
-        </h3>
-
-        {/* 🔹 เลือก preset */}
-        <div className="mb-3 text-neutral-50 ">
+      {/* Preset Manager */}
+      <Section title="Presets">
+        <div style={{ marginBottom: 10 }}>
           <Combobox
+            className="w-full"
             options={presets.map((p) => ({
               value: p.name,
               label: (
                 <span
-                  className="font-semibold text-gray-700 text-sm truncate"
-                  title={p.name}
+                  style={{ fontSize: '0.83rem', color: 'var(--text-primary)' }}
                 >
                   {p.name}
                 </span>
@@ -137,130 +212,168 @@ export const TabSettings: React.FC = () => {
             }))}
             value={selectedDropdown}
             onChange={setSelectedDropdown}
-            placeholder="ค้นหา Preset..."
+            placeholder="Search presets…"
           />
         </div>
-
-        {/* 🔹 ปุ่มจัดการ */}
-        <div className="flex gap-2 mb-4">
-          <button
-            onClick={handleLoadPreset}
-            disabled={!selectedDropdown}
-            className="bg-green-50 text-green-600 border border-green-200 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-green-100 disabled:opacity-50"
-          >
-            Load
-          </button>
-
-          {/* 🟢 เปลี่ยนเป็น setPresetToDelete */}
-          <button
-            onClick={() => setPresetToDelete(selectedDropdown)}
-            disabled={!selectedDropdown}
-            className="bg-red-50 text-red-600 border border-red-200 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-red-100 disabled:opacity-50"
-          >
-            Delete
-          </button>
-
-          {/* 🟢 เปลี่ยนเป็น setPresetToUpdate */}
-          <button
-            onClick={() => setPresetToUpdate(selectedDropdown)}
-            disabled={!selectedDropdown}
-            className="bg-blue-50 text-blue-600 border border-blue-200 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-blue-100 disabled:opacity-50"
-          >
-            Update
-          </button>
+        <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+          {[
+            {
+              label: 'Load',
+              action: () => selectedDropdown && loadPreset(selectedDropdown),
+              variant: 'success' as const,
+            },
+            {
+              label: 'Update',
+              action: () => setPresetToUpdate(selectedDropdown),
+              variant: 'primary' as const,
+            },
+            {
+              label: 'Delete',
+              action: () => setPresetToDelete(selectedDropdown),
+              variant: 'danger' as const,
+            },
+          ].map(({ label, action, variant }) => {
+            const colors = {
+              success: 'var(--success)',
+              primary: 'var(--accent)',
+              danger: 'var(--danger)',
+            };
+            return (
+              <button
+                key={label}
+                onClick={action}
+                disabled={!selectedDropdown}
+                style={{
+                  flex: 1,
+                  padding: '6px 0',
+                  borderRadius: 8,
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  border: `1px solid color-mix(in srgb, ${colors[variant]} 35%, transparent)`,
+                  background: `color-mix(in srgb, ${colors[variant]} 10%, transparent)`,
+                  color: colors[variant],
+                  cursor: !selectedDropdown ? 'not-allowed' : 'pointer',
+                  opacity: !selectedDropdown ? 0.4 : 1,
+                  transition: 'all 0.14s',
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
         </div>
-
-        {/* 🔹 สร้าง preset ใหม่ */}
-        <div className="flex gap-2 text-slate-300">
+        <div style={{ display: 'flex', gap: 8 }}>
           <input
             type="text"
-            placeholder="New Preset Name..."
+            placeholder="New preset name…"
             value={newPresetName}
             onChange={(e) => setNewPresetName(e.target.value)}
-            className="flex-1 text-sm px-3 py-1.5 border border-gray-400 rounded-lg outline-none focus:border-blue-500"
+            onKeyDown={(e) =>
+              e.key === 'Enter' &&
+              newPresetName.trim() &&
+              (createPreset(newPresetName, ''), setNewPresetName(''))
+            }
+            style={{ flex: 1, padding: '7px 12px', fontSize: '0.8rem' }}
           />
           <button
-            onClick={handleCreatePreset}
+            onClick={() => {
+              if (newPresetName.trim()) {
+                createPreset(newPresetName, '');
+                setNewPresetName('');
+              }
+            }}
             disabled={!newPresetName.trim()}
-            className="bg-blue-50 text-blue-600 border border-blue-200 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-blue-100 disabled:opacity-50"
+            style={{
+              padding: '7px 14px',
+              borderRadius: 8,
+              fontSize: '0.78rem',
+              fontWeight: 600,
+              background: 'var(--accent)',
+              color: '#fff',
+              border: 'none',
+              cursor: !newPresetName.trim() ? 'not-allowed' : 'pointer',
+              opacity: !newPresetName.trim() ? 0.4 : 1,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+            }}
           >
-            Save
+            <Save size={12} /> Save
           </button>
         </div>
-      </section>
+      </Section>
 
-      {/* ========================================== */}
-      {/* 🟢 Confirmation Modals */}
-      {/* ========================================== */}
-
-      {/* Modal สำหรับการลบ Preset */}
       <Modal
         isOpen={!!presetToDelete}
         onClose={() => setPresetToDelete(null)}
-        onConfirm={handleDeletePreset}
+        onConfirm={async () => {
+          if (presetToDelete) {
+            await deletePreset(presetToDelete);
+            setPresetToDelete(null);
+          }
+        }}
         title="Delete Preset"
         confirmText="Delete"
         confirmVariant="danger"
       >
-        <p>
-          Are you sure you want to delete the preset{' '}
-          <span className="font-bold text-neutral-800">"{presetToDelete}"</span>
+        <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+          Delete preset{' '}
+          <strong style={{ color: 'var(--text-primary)' }}>
+            "{presetToDelete}"
+          </strong>
           ?
         </p>
-        <p className="text-xs text-neutral-500 mt-2">
-          This will remove these saved settings from the database.
-        </p>
       </Modal>
-
-      {/* Modal สำหรับการอัปเดต Preset */}
       <Modal
         isOpen={!!presetToUpdate}
         onClose={() => setPresetToUpdate(null)}
-        onConfirm={handleUpdatePreset}
+        onConfirm={async () => {
+          if (presetToUpdate) {
+            await updatePreset(presetToUpdate, '');
+            setPresetToUpdate(null);
+          }
+        }}
         title="Update Preset"
         confirmText="Update"
         confirmVariant="primary"
       >
-        <p>
+        <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
           Update{' '}
-          <span className="font-bold text-neutral-800">"{presetToUpdate}"</span>{' '}
-          with your current settings?
+          <strong style={{ color: 'var(--text-primary)' }}>
+            "{presetToUpdate}"
+          </strong>{' '}
+          with current settings?
         </p>
-        <div className="mt-3 p-2 bg-blue-50 rounded border border-blue-100 text-[11px] text-blue-700">
-          Current parameters (Temp: {settings.temperature}, Context:{' '}
-          {settings.nCtx}...) will be saved.
-        </div>
       </Modal>
 
-      {/* 🧠 System Prompt */}
-      <section className="flex flex-col  bg-slate-800 p-4 rounded-lg text-slate-200 rounded-xl border border-neutral-200/20 p-2 shadow-sm space-y-1">
-        <h3 className="text-sm font-bold text-slate-300 flex items-center gap-2 mb-3">
-          🧠 System Prompt
-        </h3>
-        <p className="text-xs text-slate-300 mb-2">
-          Define the system prompt applied when creating or sending messages.
-        </p>
+      {/* System Prompt */}
+      <Section title="System Prompt">
         <textarea
           value={settings.systemPrompt}
           onChange={(e) => updateSetting('systemPrompt', e.target.value)}
-          className="w-full h-28 p-2 text-sm rounded  bg-white/70 text-neutral-900 outline-none resize-vertical custom-scrollbar"
+          rows={4}
+          style={{
+            width: '100%',
+            resize: 'vertical',
+            fontSize: '0.83rem',
+            padding: '10px 12px',
+            borderRadius: 8,
+            minHeight: 90,
+          }}
+          className="custom-scrollbar"
         />
-      </section>
+      </Section>
 
-      {/* ⚡ Basic Sampling */}
-      <section className="flex flex-col  bg-slate-800 p-4 rounded-lg text-slate-200 rounded-xl border border-neutral-200/20 p-2 shadow-sm space-y-1">
-        <h3 className="text-sm font-bold text-slate-300 flex items-center gap-2 mb-3">
-          ⚡ Basic Sampling
-        </h3>
-
+      {/* Basic Sampling */}
+      <Section title="Sampling">
         <SettingSlider
           label="Temperature"
           value={settings.temperature}
           min={0}
           max={2}
           step={0.05}
-          onChange={(v: number) => updateSetting('temperature', v)}
-          tooltip="Controls randomness: Lower is focused/deterministic, higher is creative/varied."
+          onChange={(v) => updateSetting('temperature', v)}
+          tooltip="Randomness: lower=focused, higher=creative"
         />
         <SettingSlider
           label="Max Tokens"
@@ -268,17 +381,17 @@ export const TabSettings: React.FC = () => {
           min={128}
           max={8192}
           step={128}
-          onChange={(v: number) => updateSetting('maxTokens', v)}
-          tooltip="The maximum number of tokens the model can generate in a single response."
+          onChange={(v) => updateSetting('maxTokens', v)}
+          tooltip="Maximum tokens to generate per response"
         />
         <SettingSlider
-          label="Top P "
+          label="Top P"
           value={settings.topP}
           min={0}
           max={1}
           step={0.05}
-          onChange={(v: number) => updateSetting('topP', v)}
-          tooltip="Nucleus sampling: Only considers tokens with a cumulative probability up to P."
+          onChange={(v) => updateSetting('topP', v)}
+          tooltip="Nucleus sampling threshold"
         />
         <SettingSlider
           label="Top K"
@@ -286,25 +399,21 @@ export const TabSettings: React.FC = () => {
           min={0}
           max={100}
           step={1}
-          onChange={(v: number) => updateSetting('topK', v)}
-          tooltip="Limits the vocabulary to the top K most likely next tokens."
+          onChange={(v) => updateSetting('topK', v)}
+          tooltip="Limit vocabulary to top K tokens"
         />
-      </section>
+      </Section>
 
-      {/* 🎛️ Advanced Penalties */}
-      <section className="flex flex-col  bg-slate-800 p-4 rounded-lg text-slate-200 rounded-xl border border-neutral-200/20 p-2 shadow-sm space-y-1">
-        <h3 className="text-sm font-bold text-slate-300 flex items-center gap-2 mb-3">
-          🎛️ Advanced Penalties
-        </h3>
-
+      {/* Penalties */}
+      <Section title="Penalties">
         <SettingSlider
           label="Min P"
           value={settings.minP}
           min={0}
           max={1}
           step={0.05}
-          onChange={(v: number) => updateSetting('minP', v)}
-          tooltip="Alternative to Top-P: Minimum probability relative to the most likely token."
+          onChange={(v) => updateSetting('minP', v)}
+          tooltip="Minimum probability relative to top token"
         />
         <SettingSlider
           label="Repeat Penalty"
@@ -312,8 +421,8 @@ export const TabSettings: React.FC = () => {
           min={1}
           max={2}
           step={0.05}
-          onChange={(v: number) => updateSetting('repeatPenalty', v)}
-          tooltip="Discourages the model from repeating the same lines or phrases."
+          onChange={(v) => updateSetting('repeatPenalty', v)}
+          tooltip="Discourage repeating same phrases"
         />
         <SettingSlider
           label="Presence Penalty"
@@ -321,8 +430,8 @@ export const TabSettings: React.FC = () => {
           min={-2}
           max={2}
           step={0.1}
-          onChange={(v: number) => updateSetting('presencePenalty', v)}
-          tooltip="Encourages the model to talk about new topics (based on presence)."
+          onChange={(v) => updateSetting('presencePenalty', v)}
+          tooltip="Encourage talking about new topics"
         />
         <SettingSlider
           label="Frequency Penalty"
@@ -330,28 +439,31 @@ export const TabSettings: React.FC = () => {
           min={-2}
           max={2}
           step={0.1}
-          onChange={(v: number) => updateSetting('frequencyPenalty', v)}
-          tooltip="Reduces repetition by penalizing tokens based on their frequency so far."
+          onChange={(v) => updateSetting('frequencyPenalty', v)}
+          tooltip="Reduce repetition by frequency"
         />
-      </section>
+      </Section>
 
-      {/* 🖥️ Hardware & Context */}
-      <section className="flex flex-col  bg-slate-800 p-4 rounded-lg text-slate-200 rounded-xl border border-neutral-200/20 p-2 shadow-sm space-y-1">
-        <h3 className="text-sm font-bold text-slate-300 flex items-center gap-2 mb-1">
-          🖥️ Hardware (Requires Reload)
-        </h3>
-        <p className="text-xs text-slate-300 mb-3">
+      {/* Hardware */}
+      <Section title="Hardware (Requires Reload)">
+        <p
+          style={{
+            fontSize: '0.76rem',
+            color: 'var(--text-tertiary)',
+            marginBottom: 12,
+            marginTop: -6,
+          }}
+        >
           Changes take effect after model reload.
         </p>
-
         <SettingSlider
           label="Context Size (n_ctx)"
           value={settings.nCtx}
           min={512}
           max={32768}
           step={512}
-          onChange={(v: number) => updateSetting('nCtx', v)}
-          tooltip="Maximum sequence length the model can remember (affects VRAM usage)."
+          onChange={(v) => updateSetting('nCtx', v)}
+          tooltip="Max tokens the model can remember (affects VRAM)"
         />
         <SettingSlider
           label="GPU Layers (-1 = All)"
@@ -359,8 +471,8 @@ export const TabSettings: React.FC = () => {
           min={-1}
           max={100}
           step={1}
-          onChange={(v: number) => updateSetting('nGpuLayers', v)}
-          tooltip="Number of layers to offload to GPU. Set to -1 to offload all layers."
+          onChange={(v) => updateSetting('nGpuLayers', v)}
+          tooltip="Layers to offload to GPU (-1 = all)"
         />
         <SettingSlider
           label="CPU Threads"
@@ -368,8 +480,8 @@ export const TabSettings: React.FC = () => {
           min={1}
           max={32}
           step={1}
-          onChange={(v: number) => updateSetting('nThreads', v)}
-          tooltip="Number of CPU threads to use for generation (match your CPU cores)."
+          onChange={(v) => updateSetting('nThreads', v)}
+          tooltip="Number of CPU threads for generation"
         />
         <SettingSlider
           label="Batch Size (n_batch)"
@@ -377,10 +489,10 @@ export const TabSettings: React.FC = () => {
           min={128}
           max={2048}
           step={128}
-          onChange={(v: number) => updateSetting('nBatch', v)}
-          tooltip="Number of tokens to process in parallel during prompt ingestion."
+          onChange={(v) => updateSetting('nBatch', v)}
+          tooltip="Tokens to process in parallel"
         />
-      </section>
+      </Section>
     </div>
   );
 };

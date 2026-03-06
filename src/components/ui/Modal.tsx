@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { X } from 'lucide-react';
 
 interface ModalProps {
   isOpen: boolean;
@@ -30,50 +31,109 @@ export const Modal: React.FC<ModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-80 overflow-y-auto overflow-x-hidden flex items-center justify-center p-4">
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 100,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 16,
+        animation: 'fadeIn 0.15s both',
+      }}
+    >
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-neutral-900/50 backdrop-blur-sm transition-opacity"
         onClick={onClose}
+        style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.5)',
+          backdropFilter: 'blur(4px)',
+          WebkitBackdropFilter: 'blur(4px)',
+        }}
       />
 
-      {/* Modal Content */}
-      <div className="relative w-full max-w-lg transform overflow-hidden rounded-xl bg-white border border-neutral-200 shadow-2xl transition-all scale-100 opacity-100 animate-in fade-in zoom-in duration-200">
+      {/* Panel */}
+      <div
+        style={{
+          position: 'relative',
+          width: '100%',
+          maxWidth: 440,
+          background: 'var(--bg-surface)',
+          border: '1px solid var(--border)',
+          borderRadius: 14,
+          boxShadow: 'var(--shadow-lg)',
+          animation: 'scaleIn 0.2s cubic-bezier(0.16,1,0.3,1) both',
+          overflow: 'hidden',
+        }}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-neutral-100 px-4 py-3">
-          <h3 className="text-sm font-bold text-neutral-800">{title}</h3>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '14px 18px',
+            borderBottom: '1px solid var(--border)',
+          }}
+        >
+          <span
+            style={{
+              fontSize: '0.9rem',
+              fontWeight: 600,
+              color: 'var(--text-primary)',
+            }}
+          >
+            {title}
+          </span>
           <button
             onClick={onClose}
-            className="rounded-full p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 transition-colors"
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: 8,
+              border: 'none',
+              background: 'var(--bg-hover)',
+              color: 'var(--text-secondary)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
           >
-            <svg
-              className="size-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
+            <X size={14} />
           </button>
         </div>
 
         {/* Body */}
-        <div className="p-5">
-          <div className="text-sm text-neutral-600 leading-relaxed">
-            {children}
-          </div>
-        </div>
+        <div style={{ padding: '18px 18px 14px' }}>{children}</div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-2 border-t border-neutral-100 px-4 py-3 bg-neutral-50/50">
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            gap: 8,
+            padding: '12px 18px',
+            background: 'var(--bg-elevated)',
+            borderTop: '1px solid var(--border)',
+          }}
+        >
           <button
             onClick={onClose}
-            className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
+            style={{
+              padding: '8px 16px',
+              borderRadius: 8,
+              fontSize: '0.83rem',
+              fontWeight: 500,
+              background: 'var(--bg-surface)',
+              border: '1px solid var(--border)',
+              color: 'var(--text-secondary)',
+              cursor: 'pointer',
+              transition: 'all 0.12s',
+            }}
           >
             Cancel
           </button>
@@ -81,13 +141,22 @@ export const Modal: React.FC<ModalProps> = ({
             <button
               onClick={() => {
                 onConfirm();
-                onClose();
               }}
-              className={`rounded-lg px-3 py-2 text-xs font-medium text-white shadow-sm transition-colors ${
-                confirmVariant === 'danger'
-                  ? 'bg-red-600 hover:bg-red-700'
-                  : 'bg-blue-600 hover:bg-blue-700'
-              }`}
+              style={{
+                padding: '8px 18px',
+                borderRadius: 8,
+                fontSize: '0.83rem',
+                fontWeight: 600,
+                background:
+                  confirmVariant === 'danger'
+                    ? 'var(--danger)'
+                    : 'var(--accent)',
+                color: '#fff',
+                border: 'none',
+                cursor: 'pointer',
+                boxShadow: `0 1px 4px ${confirmVariant === 'danger' ? 'color-mix(in srgb, var(--danger) 35%, transparent)' : 'color-mix(in srgb, var(--accent) 35%, transparent)'}`,
+                transition: 'all 0.12s',
+              }}
             >
               {confirmText}
             </button>

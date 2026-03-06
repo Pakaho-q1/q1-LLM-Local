@@ -13,18 +13,21 @@ type InternalMessage = ChatMessage & {
   id: string;
   role: 'user' | 'assistant' | 'system' | 'model';
   attachments?: Attachment[];
+  isTyping?: boolean;
 };
 
 export const useChat = () => {
   const {
     isConnected,
     sendPayload,
+    sendForm,
     lastMessage,
     subscribeToChat,
     error,
     currentConversation,
   } = useSSE();
-  const creatingSessionRef = useRef<boolean>(false);
+
+  const creatingSessionRef = useRef(false);
   const currentConversationRef = useRef<string | null>(currentConversation);
 
   useEffect(() => {
@@ -37,7 +40,6 @@ export const useChat = () => {
 
   const idRef = useRef(0);
   const messagesRef = useRef<InternalMessage[]>([]);
-
   const createId = () => `msg-${Date.now()}-${idRef.current++}`;
 
   useEffect(() => {
@@ -46,100 +48,72 @@ export const useChat = () => {
 
   useEffect(() => {
     if (!lastMessage) return;
-
     try {
-      console.log('🔍 lastMessage received:', lastMessage.type, lastMessage);
-
       if (
         lastMessage.type === 'chat_history' &&
         Array.isArray(lastMessage.data)
       ) {
-        console.log(
-          '✅ Loading chat history with',
-          lastMessage.data.length,
-          'messages',
-        );
         const historyMessages: InternalMessage[] = (
           lastMessage.data as any[]
-        ).map((msg: any) => ({
+        ).map((msg) => ({
           id: createId(),
           role: msg.role || 'user',
           content: msg.content || '',
         }));
         setMessages(historyMessages);
         setChatError(null);
-        console.log('✅ Chat history loaded successfully');
+        setIsGenerating(false);
       }
     } catch (err) {
-      console.error('❌ Error processing history:', err);
+      console.error('Error processing history:', err);
     }
   }, [lastMessage]);
 
   useEffect(() => {
-    const handleIncomingMessage = (incomingMsg: any) => {
+    const handleIncoming = (msg: any) => {
       try {
-        if (incomingMsg === '[DONE]') {
+        if (msg === '[DONE]') {
+          setMessages((prev) => {
+            const copy = [...prev];
+            const last = copy[copy.length - 1];
+            if (last?.role === 'assistant')
+              copy[copy.length - 1] = { ...last, isTyping: false };
+            return copy;
+          });
           setIsGenerating(false);
           return;
         }
 
-        if (incomingMsg.choices && Array.isArray(incomingMsg.choices)) {
-          const delta = incomingMsg.choices[0]?.delta;
-          const finish_reason = incomingMsg.choices[0]?.finish_reason;
-
-          if (delta && delta.content) {
+        if (msg.choices && Array.isArray(msg.choices)) {
+          const delta = msg.choices[0]?.delta;
+          const finish = msg.choices[0]?.finish_reason;
+          if (delta?.content) appendAssistantChunk(delta.content, msg.id);
+          if (finish != null) {
+            setIsGenerating(false);
             setMessages((prev) => {
-              const updated = [...prev];
-              const last = updated[updated.length - 1];
-
-              if (last && last.role === 'assistant') {
-                updated[updated.length - 1] = {
-                  ...last,
-                  content: last.content + delta.content,
-                };
-              } else {
-                updated.push({
-                  id: incomingMsg.id || createId(),
-                  role: 'assistant',
-                  content: delta.content,
-                });
-              }
-              return updated;
+              const copy = [...prev];
+              const last = copy[copy.length - 1];
+              if (last?.role === 'assistant')
+                copy[copy.length - 1] = { ...last, isTyping: false };
+              return copy;
             });
           }
-
-          if (finish_reason != null) {
-            setIsGenerating(false);
-          }
           return;
         }
 
-        if (incomingMsg.type === 'chunk' && incomingMsg.content) {
-          setMessages((prev) => {
-            const updated = [...prev];
-            const last = updated[updated.length - 1];
-
-            if (last && last.role === 'assistant') {
-              updated[updated.length - 1] = {
-                ...last,
-                content: last.content + incomingMsg.content,
-              };
-            } else {
-              updated.push({
-                id: createId(),
-                role: 'assistant',
-                content: incomingMsg.content ?? '',
-              });
-            }
-            return updated;
-          });
-        } else if (
-          incomingMsg.type === 'done' ||
-          incomingMsg.type === 'success'
-        ) {
+        if (msg.type === 'chunk' && msg.content) {
+          appendAssistantChunk(msg.content);
+        } else if (msg.type === 'done' || msg.type === 'success') {
           setIsGenerating(false);
-        } else if (incomingMsg.type === 'error') {
-          setChatError(incomingMsg.message || 'Unknown error');
+          setMessages((prev) => {
+            const copy = [...prev];
+            const last = copy[copy.length - 1];
+            if (last?.role === 'assistant')
+              copy[copy.length - 1] = { ...last, isTyping: false };
+            return copy;
+          });
+        } else if (msg.type === 'error') {
+          setChatError(msg.message || 'Unknown error');
           setIsGenerating(false);
         }
       } catch (err) {
@@ -148,33 +122,66 @@ export const useChat = () => {
       }
     };
 
-    const unsubscribe = subscribeToChat(handleIncomingMessage);
-
-    return () => {
-      unsubscribe();
-    };
+    return subscribeToChat(handleIncoming);
   }, [subscribeToChat]);
+
+  const appendAssistantChunk = (chunk: string, msgId?: string) => {
+    setMessages((prev) => {
+      const copy = [...prev];
+      const last = copy[copy.length - 1];
+      if (last?.role === 'assistant') {
+        copy[copy.length - 1] = {
+          ...last,
+          content: last.content + chunk,
+          isTyping: true,
+        };
+      } else {
+        copy.push({
+          id: msgId || createId(),
+          role: 'assistant',
+          content: chunk,
+          isTyping: true,
+        });
+      }
+      return copy;
+    });
+  };
+
+  const stopGeneration = useCallback(async () => {
+    setIsGenerating(false);
+
+    setMessages((prev) => {
+      const copy = [...prev];
+      const last = copy[copy.length - 1];
+      if (last?.role === 'assistant')
+        copy[copy.length - 1] = { ...last, isTyping: false };
+      return copy;
+    });
+    try {
+      await sendPayload({ action: 'stop_generation' });
+    } catch (_) {}
+  }, [sendPayload]);
 
   const sendMessage = useCallback(
     async (
       text: string,
       file: File | null = null,
       params: Record<string, unknown> = {},
-      systemPrompt: string = '',
+      systemPrompt = '',
     ) => {
       if ((!text.trim() && !file) || !isConnected || isGenerating) return;
 
       try {
         setChatError(null);
 
-        let newAttachments: Attachment[] | undefined = undefined;
+        let attachments: Attachment[] | undefined;
         if (file) {
-          newAttachments = [
+          attachments = [
             {
               url: URL.createObjectURL(file),
               type: file.type,
               name: file.name,
-              file: file,
+              file,
             },
           ];
         }
@@ -183,77 +190,80 @@ export const useChat = () => {
           id: createId(),
           role: 'user',
           content: text,
-          attachments: newAttachments,
+          attachments,
         };
-
         setIsGenerating(true);
-
         setMessages((prev) => {
           const next = [...prev, userMsg];
           messagesRef.current = next;
           return next;
         });
 
-        let chatHistory = messagesRef.current.map((m) => ({
+        let history = messagesRef.current.map((m) => ({
           role: m.role,
           content: m.content,
         }));
-        if (systemPrompt.trim()) {
-          chatHistory = [
-            { role: 'system', content: systemPrompt },
-            ...chatHistory,
-          ];
-        }
+        if (systemPrompt.trim())
+          history = [{ role: 'system', content: systemPrompt }, ...history];
 
         if (!currentConversationRef.current && !creatingSessionRef.current) {
           creatingSessionRef.current = true;
           try {
-            await sendPayload({ action: 'create_session', title: 'New Chat' });
-
+            await sendPayload({
+              action: 'create_session',
+              title: text.slice(0, 60) || 'New Chat',
+            });
             const start = Date.now();
             while (
               !currentConversationRef.current &&
               Date.now() - start < 5000
             ) {
-              await new Promise((res) => setTimeout(res, 100));
+              await new Promise((r) => setTimeout(r, 100));
             }
-          } catch (err) {
-            console.warn('Failed to create session automatically:', err);
           } finally {
             creatingSessionRef.current = false;
           }
         }
 
         const request_id = `req_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-        const payload: Record<string, unknown> = {
-          action: 'chat',
-          content: text,
-          messages: chatHistory,
-          params,
-          request_id,
-        };
-        if (currentConversationRef.current)
-          payload.conversation_id = currentConversationRef.current;
-        const resp = await sendPayload(payload);
 
-        if (resp && (resp as any).request_id) {
+        if (file) {
+          const fd = new FormData();
+          fd.append('file', file, file.name);
+          fd.append('action', 'chat_with_file');
+          fd.append('content', text);
+          fd.append('messages', JSON.stringify(history));
+          fd.append('params', JSON.stringify(params));
+          fd.append('request_id', request_id);
+          if (currentConversationRef.current)
+            fd.append('conversation_id', currentConversationRef.current);
+
+          await sendForm('chat_file', fd);
+        } else {
+          const payload: Record<string, unknown> = {
+            action: 'chat',
+            content: text,
+            messages: history,
+            params,
+            request_id,
+          };
+          if (currentConversationRef.current)
+            payload.conversation_id = currentConversationRef.current;
+          await sendPayload(payload);
         }
       } catch (err) {
         setChatError(err instanceof Error ? err.message : 'Failed to send');
         setIsGenerating(false);
       }
     },
-    [isConnected, isGenerating, sendPayload],
+    [isConnected, isGenerating, sendPayload, sendForm],
   );
 
   const clearMessages = useCallback(() => {
     setMessages([]);
     setChatError(null);
   }, []);
-
-  const clearError = useCallback(() => {
-    setChatError(null);
-  }, []);
+  const clearError = useCallback(() => setChatError(null), []);
 
   return {
     isConnected,
@@ -261,6 +271,7 @@ export const useChat = () => {
     isGenerating,
     error: chatError || error,
     sendMessage,
+    stopGeneration,
     clearMessages,
     clearError,
   };

@@ -1,13 +1,12 @@
-// src/components/layouts/MainLayout.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sidebar } from './Sidebar';
-import { ChatContainer } from '../../features/chat/components/ChatContainer';
-import { useModelManager } from '../../features/models/hooks/useModelManager';
+import { ChatContainer } from '@/features/chat/components/ChatContainer';
+import { useModelManager } from '@/features/models/hooks/useModelManager';
 import { useMainLayout } from './hooks/useMainLayout';
-import { useSettings } from '../../contexts/SettingsContext';
-import { useSSE } from '../../contexts/SSEContext';
-import { StatusBadge } from '../ui/StatusBadge';
-import { Combobox } from '../ui/Combobox';
+import { useSettings } from '@/contexts/SettingsContext';
+import { useSSE } from '@/contexts/SSEContext';
+import { Combobox } from '@/components/ui/Combobox';
+import { Sun, Moon, Menu, ChevronRight, Zap, ZapOff } from 'lucide-react';
 
 enum ConnectionState {
   DISCONNECTED = 'disconnected',
@@ -16,19 +15,56 @@ enum ConnectionState {
   ERROR = 'error',
 }
 
-export const MainLayout: React.FC = () => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
+const LAST_MODEL_KEY = 'v1_last_selected_model';
 
-  const { localModels, isLoadingModels, unloadModel, loadModel, error } =
+function useTheme() {
+  const [dark, setDark] = useState(() => {
+    const saved = localStorage.getItem('theme');
+    if (saved) return saved === 'dark';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', dark);
+    localStorage.setItem('theme', dark ? 'dark' : 'light');
+  }, [dark]);
+  return { dark, toggle: () => setDark((p) => !p) };
+}
+
+export const MainLayout: React.FC = () => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isLoadingAction, setIsLoadingAction] = useState<
+    'load' | 'unload' | null
+  >(null);
+  const { dark, toggle } = useTheme();
+
+  const { localModels, isLoadingModels, unloadModel, loadModel } =
     useModelManager();
   const { currentModel, isModelRunning, isModelLoading } = useMainLayout();
   const { settings } = useSettings();
-  const { isConnected, connectionState, error: wsError, retry } = useSSE();
-  const [selectedModel, setSelectedModel] = useState<string>('');
+  const { isConnected, connectionState } = useSSE();
+
+  const [selectedModel, setSelectedModel] = useState<string>(
+    () => localStorage.getItem(LAST_MODEL_KEY) || '',
+  );
+
+  useEffect(() => {
+    if (localModels.length === 0) return;
+    const cached = localStorage.getItem(LAST_MODEL_KEY);
+    if (cached && !localModels.some((m) => m.name === cached)) {
+      setSelectedModel('');
+      localStorage.removeItem(LAST_MODEL_KEY);
+    }
+  }, [localModels]);
+
+  const handleModelChange = (val: string) => {
+    setSelectedModel(val);
+    if (val) localStorage.setItem(LAST_MODEL_KEY, val);
+    else localStorage.removeItem(LAST_MODEL_KEY);
+  };
 
   const handleLoadModel = async () => {
     if (!selectedModel) return;
-
+    setIsLoadingAction('load');
     try {
       await unloadModel();
       await loadModel(selectedModel, {
@@ -38,137 +74,261 @@ export const MainLayout: React.FC = () => {
         n_batch: settings.nBatch,
       });
     } catch (err) {
-      console.error('❌ Failed to load model:', err);
+      console.error('Failed to load model:', err);
+    } finally {
+      setIsLoadingAction(null);
     }
   };
 
   const handleUnloadModel = async () => {
-    await unloadModel();
-  };
-
-  const getConnectionColor = () => {
-    if (connectionState === ConnectionState.CONNECTED) return 'bg-green-500';
-    if (connectionState === ConnectionState.CONNECTING) return 'bg-yellow-500';
-    if (connectionState === ConnectionState.ERROR) return 'bg-red-500';
-    return 'bg-gray-500';
-  };
-
-  const getConnectionLabel = () => {
-    switch (connectionState) {
-      case ConnectionState.CONNECTED:
-        return 'Online';
-      case ConnectionState.CONNECTING:
-        return 'Connecting...';
-      case ConnectionState.ERROR:
-        return 'Error';
-      case ConnectionState.DISCONNECTED:
-        return 'Offline';
+    setIsLoadingAction('unload');
+    try {
+      await unloadModel();
+    } finally {
+      setIsLoadingAction(null);
     }
   };
 
+  const connDot =
+    connectionState === ConnectionState.CONNECTED
+      ? 'var(--success)'
+      : connectionState === ConnectionState.CONNECTING
+        ? 'var(--warning)'
+        : connectionState === ConnectionState.ERROR
+          ? 'var(--danger)'
+          : 'var(--text-tertiary)';
+
+  const connPulse = connectionState === ConnectionState.CONNECTING;
+
+  const modelStatus = isModelLoading
+    ? {
+        label: 'Loading',
+        color: 'var(--warning)',
+        bgColor: 'color-mix(in srgb, var(--warning) 10%, transparent)',
+        borderColor: 'color-mix(in srgb, var(--warning) 30%, transparent)',
+      }
+    : isModelRunning
+      ? {
+          label: currentModel?.split('/').pop() || 'Running',
+          color: 'var(--success)',
+          bgColor: 'color-mix(in srgb, var(--success) 10%, transparent)',
+          borderColor: 'color-mix(in srgb, var(--success) 30%, transparent)',
+        }
+      : {
+          label: 'No Model',
+          color: 'var(--text-tertiary)',
+          bgColor: 'var(--bg-hover)',
+          borderColor: 'var(--border)',
+        };
+
+  const Spinner = () => (
+    <span
+      style={{
+        width: 10,
+        height: 10,
+        border: '2px solid currentColor',
+        borderTopColor: 'transparent',
+        borderRadius: '50%',
+        display: 'inline-block',
+        animation: 'spinSlow 1s linear infinite',
+        flexShrink: 0,
+      }}
+    />
+  );
+
   return (
-    <div className="flex h-screen overflow-hidden  bg-gradient-to-b from-gray-600 via-gray-500 to-slate-600 font-sans">
+    <div
+      className="flex h-screen overflow-hidden"
+      style={{ background: 'var(--bg-base)', color: 'var(--text-primary)' }}
+    >
       {/* Sidebar */}
       <div
-        className={`
-          ${isSidebarOpen ? 'w-100 overflow-visible' : 'w-0 overflow-hidden'} 
-          transition-all duration-300  border-neutral-200 bg-gradient-to-b from-slate-700 via-slate-800 to-slate-900 backdrop-blur-md
-          flex flex-col shrink-0 relative z-30 shadow-[4px_0_24px_rgba(0,0,0,0.02)]
-        `}
+        style={{
+          width: isSidebarOpen ? '350px' : '0px',
+          background: 'var(--bg-sidebar)',
+          borderRight: '1px solid var(--border)',
+          boxShadow: isSidebarOpen ? 'var(--shadow-sidebar)' : 'none',
+          transition: 'width 0.3s cubic-bezier(0.16,1,0.3,1)',
+          overflow: 'hidden',
+          flexShrink: 0,
+          zIndex: 30,
+        }}
       >
         <Sidebar onClose={() => setIsSidebarOpen(false)} />
       </div>
 
-      {/* Main Area */}
-      <div className="bg-gradient-to-b from-slate-700 via-slate-800 to-slate-900 flex-1 flex flex-col relative min-w-0 z-10">
-        {/* Top Header Bar */}
-        <header className="h-15 bg-slate-800  border-neutral-200 flex items-center justify-between px-4 shrink-0 shadow-sm z-20">
-          <div className="flex items-center gap-3">
-            {!isSidebarOpen && (
-              <button
-                onClick={() => setIsSidebarOpen(true)}
-                className="p-1.5 text-gray-50 hover:bg-[#64748b] rounded-md"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 6h16M4 12h16M4 18h16"
-                  />
-                </svg>
-              </button>
-            )}
+      {/* Main */}
+      <div
+        className="flex-1 flex flex-col min-w-0"
+        style={{ background: 'var(--bg-base)' }}
+      >
+        {/* Header */}
+        <header
+          className="flex items-center justify-between px-4 shrink-0 z-20 gap-3"
+          style={{
+            height: '56px',
+            background: 'var(--bg-header)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            borderBottom: '1px solid var(--border)',
+            boxShadow: 'var(--shadow-sm)',
+          }}
+        >
+          {/* Left */}
+          <div className="flex items-center gap-3 shrink-0">
+            <button
+              onClick={() => setIsSidebarOpen((v) => !v)}
+              className="icon-btn"
+              title={isSidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+            >
+              {isSidebarOpen ? <ChevronRight size={17} /> : <Menu size={17} />}
+            </button>
             <div className="flex items-center gap-2">
               <span
-                className={`w-2.5 h-2.5 rounded-full ${getConnectionColor()}`}
-                title={getConnectionLabel()}
-              ></span>
-              <span className="font-semibold text-gray-50 text-sm">
-                Enterprise LLM
+                style={{
+                  width: 7,
+                  height: 7,
+                  borderRadius: '50%',
+                  background: connDot,
+                  display: 'inline-block',
+                  flexShrink: 0,
+                  animation: connPulse
+                    ? 'pulseDot 1.2s ease-in-out infinite'
+                    : 'none',
+                  boxShadow: `0 0 6px ${connDot}`,
+                }}
+              />
+              <span
+                style={{
+                  fontWeight: 700,
+                  fontSize: '1.3rem',
+                  color: 'var(--text-primary)',
+                  letterSpacing: '-0.02em',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                q1-LLM-Local
               </span>
             </div>
           </div>
 
-          {/* Model Selector & Actions */}
-          <div className="flex items-center gap-2">
-            <StatusBadge
-              status={
-                isModelLoading
-                  ? 'loading'
-                  : isModelRunning
-                    ? 'running'
-                    : 'stopped'
-              }
-              label={
-                isModelLoading
-                  ? 'Loading'
-                  : isModelRunning
-                    ? currentModel || 'Running'
-                    : 'No Model'
-              }
-            />
-            <Combobox
-              className="w-50 text-sm bg-neutral-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
-              options={localModels.map((m) => ({
-                value: m.name,
-                label: (
-                  <span
-                    className="font-semibold text-gray-700 text-sm truncate"
-                    title={m.name}
-                  >
-                    {m.name}
-                  </span>
-                ),
-              }))}
-              value={selectedModel}
-              onChange={setSelectedModel}
-              placeholder={isLoadingModels ? 'Loading...' : 'Search Model...'}
-              disabled={isLoadingModels || !isConnected}
-            />
+          {/* Right: model controls */}
+          <div className="flex items-center gap-2 min-w-0">
+            {/* Model status badge */}
+            <div
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-medium shrink-0"
+              style={{
+                color: modelStatus.color,
+                background: modelStatus.bgColor,
+                borderColor: modelStatus.borderColor,
+                maxWidth: 160,
+              }}
+            >
+              {isModelLoading ? (
+                <Spinner />
+              ) : (
+                <span
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: '50%',
+                    background: modelStatus.color,
+                    display: 'inline-block',
+                    flexShrink: 0,
+                    animation: isModelRunning
+                      ? 'pulseDot 2s ease-in-out infinite'
+                      : 'none',
+                  }}
+                />
+              )}
+              <span
+                style={{
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+                title={isModelRunning ? currentModel || 'Running' : undefined}
+              >
+                {modelStatus.label}
+              </span>
+            </div>
+
+            {/* Model selector */}
+            <div style={{ width: 190, flexShrink: 0 }}>
+              <Combobox
+                className="w-full text-sm"
+                options={localModels.map((m) => ({
+                  value: m.name,
+                  label: (
+                    <span
+                      style={{
+                        fontSize: '0.8rem',
+                        color: 'var(--text-primary)',
+                      }}
+                      title={m.name}
+                    >
+                      {m.name}
+                    </span>
+                  ),
+                }))}
+                value={selectedModel}
+                onChange={handleModelChange}
+                placeholder={isLoadingModels ? 'Loading…' : 'Select model…'}
+                disabled={isLoadingModels || !isConnected}
+              />
+            </div>
+
+            {/* Load */}
             <button
               onClick={handleLoadModel}
-              disabled={!selectedModel || !isConnected}
-              className="text-sm bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg disabled:opacity-50"
+              disabled={
+                !selectedModel || !isConnected || isLoadingAction !== null
+              }
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 disabled:opacity-40 shrink-0"
+              style={{
+                background: 'var(--success)',
+                color: '#fff',
+                border: 'none',
+                cursor:
+                  !selectedModel || !isConnected ? 'not-allowed' : 'pointer',
+              }}
             >
+              {isLoadingAction === 'load' ? <Spinner /> : <Zap size={12} />}
               Load
             </button>
+
+            {/* Unload */}
             <button
               onClick={handleUnloadModel}
-              disabled={!isConnected}
-              className="text-sm bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg disabled:opacity-50"
+              disabled={!isConnected || isLoadingAction !== null}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 disabled:opacity-40 shrink-0"
+              style={{
+                background: 'var(--danger)',
+                color: '#fff',
+                border: 'none',
+                cursor: !isConnected ? 'not-allowed' : 'pointer',
+              }}
             >
+              {isLoadingAction === 'unload' ? (
+                <Spinner />
+              ) : (
+                <ZapOff size={12} />
+              )}
               Unload
+            </button>
+
+            {/* Theme toggle */}
+            <button
+              onClick={toggle}
+              className="icon-btn shrink-0"
+              title={dark ? 'Light mode' : 'Dark mode'}
+            >
+              {dark ? <Sun size={16} /> : <Moon size={16} />}
             </button>
           </div>
         </header>
 
-        {/* Chat Container */}
+        {/* Chat */}
         <div className="flex-1 overflow-hidden min-h-0">
           <ChatContainer />
         </div>

@@ -12,6 +12,8 @@ interface HistoryMessage {
   content: string;
 }
 
+const LAST_SESSION_KEY = 'v1_last_session_id';
+
 export const useHistory = () => {
   const { sendPayload, lastMessage, setCurrentConversation } = useSSE();
 
@@ -25,29 +27,57 @@ export const useHistory = () => {
 
     try {
       const t = lastMessage.type;
+
       if (t === 'sessions_list' && Array.isArray(lastMessage.data)) {
-        setSessions(lastMessage.data as SessionItem[]);
+        const list = lastMessage.data as SessionItem[];
+        setSessions(list);
         setLoading(false);
         setError(null);
+
+        const savedId = localStorage.getItem(LAST_SESSION_KEY);
+        if (savedId && list.some((s) => s.id === savedId)) {
+        }
       } else if (t === 'session_created' && lastMessage.data) {
         const item = lastMessage.data as SessionItem;
-        setSessions((s) => [item, ...s]);
-        setLoading(false);
 
-        if (setCurrentConversation) setCurrentConversation(item.id);
+        setSessions((prev) => {
+          if (prev.some((s) => s.id === item.id)) return prev;
+          return [item, ...prev];
+        });
+        setLoading(false);
+        setCurrentConversation?.(item.id);
+        localStorage.setItem(LAST_SESSION_KEY, item.id);
       } else if (t === 'session_renamed') {
+        const data = lastMessage.data as any;
+        if (data?.id && data?.title) {
+          setSessions((prev) =>
+            prev.map((s) =>
+              s.id === data.id ? { ...s, title: data.title } : s,
+            ),
+          );
+        }
         fetchSessions();
+        setLoading(false);
       } else if (t === 'session_deleted') {
         const data = lastMessage.data as Record<string, any> | undefined;
         const convId =
           lastMessage.conversation_id || data?.id || data?.conversation_id;
-        if (convId) setSessions((s) => s.filter((x) => x.id !== convId));
+        if (convId) {
+          setSessions((prev) => prev.filter((x) => x.id !== convId));
+
+          if (localStorage.getItem(LAST_SESSION_KEY) === convId) {
+            localStorage.removeItem(LAST_SESSION_KEY);
+          }
+        }
+        setLoading(false);
       } else if (t === 'chat_history' && lastMessage.conversation_id) {
         setCurrentHistory(lastMessage.data as HistoryMessage[]);
         setLoading(false);
-
-        if (setCurrentConversation)
-          setCurrentConversation(lastMessage.conversation_id as string);
+        setCurrentConversation?.(lastMessage.conversation_id as string);
+        localStorage.setItem(
+          LAST_SESSION_KEY,
+          lastMessage.conversation_id as string,
+        );
       }
     } catch (err) {
       setError(
@@ -90,6 +120,10 @@ export const useHistory = () => {
     async (conversation_id: string, title: string) => {
       setLoading(true);
       setError(null);
+
+      setSessions((prev) =>
+        prev.map((s) => (s.id === conversation_id ? { ...s, title } : s)),
+      );
       try {
         await sendPayload({ action: 'rename_session', conversation_id, title });
       } catch (err) {
@@ -97,6 +131,7 @@ export const useHistory = () => {
           err instanceof Error ? err.message : 'Failed to rename session',
         );
         setLoading(false);
+        fetchSessions();
       }
     },
     [sendPayload],
@@ -106,6 +141,11 @@ export const useHistory = () => {
     async (conversation_id: string) => {
       setLoading(true);
       setError(null);
+
+      setSessions((prev) => prev.filter((x) => x.id !== conversation_id));
+      if (localStorage.getItem(LAST_SESSION_KEY) === conversation_id) {
+        localStorage.removeItem(LAST_SESSION_KEY);
+      }
       try {
         await sendPayload({ action: 'delete_session', conversation_id });
       } catch (err) {
@@ -113,6 +153,7 @@ export const useHistory = () => {
           err instanceof Error ? err.message : 'Failed to delete session',
         );
         setLoading(false);
+        fetchSessions();
       }
     },
     [sendPayload],
@@ -124,8 +165,8 @@ export const useHistory = () => {
       setError(null);
       try {
         await sendPayload({ action: 'get_chat_history', conversation_id });
-
-        if (setCurrentConversation) setCurrentConversation(conversation_id);
+        setCurrentConversation?.(conversation_id);
+        localStorage.setItem(LAST_SESSION_KEY, conversation_id);
       } catch (err) {
         setError(
           err instanceof Error ? err.message : 'Failed to get chat history',
@@ -146,6 +187,7 @@ export const useHistory = () => {
     renameSession,
     deleteSession,
     getChatHistory,
+    lastSessionKey: LAST_SESSION_KEY,
   };
 };
 

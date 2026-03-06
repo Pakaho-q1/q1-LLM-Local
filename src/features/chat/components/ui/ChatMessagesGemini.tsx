@@ -19,31 +19,49 @@ export const ChatMessagesGemini: React.FC<ChatMessagesProps> = ({
     useSmartScroll(messages);
 
   return (
-    <div className="relative flex-1 w-full h-full min-h-0">
+    <div
+      className="relative flex-1 w-full min-h-0"
+      style={{ overflow: 'hidden' }}
+    >
       <div
         ref={scrollRef}
-        className="flex-1 w-full h-full min-h-0 overflow-y-auto custom-scrollbar pb-8 pt-4"
+        className="w-full h-full custom-scrollbar"
+        style={{ overflowY: 'auto', paddingTop: 24, paddingBottom: 24 }}
       >
-        <div className="flex flex-col max-w-5xl mx-auto w-full gap-2 pb-4">
+        <div
+          className="flex flex-col mx-auto gap-1"
+          style={{ maxWidth: '768px', width: '100%', padding: '0 16px' }}
+        >
           {messages.map((msg, index) => (
             <MessageBubble
               key={msg.id || index}
               msg={msg}
               onEdit={onEdit}
               onRetry={onRetry}
+              animIndex={index}
             />
           ))}
         </div>
       </div>
 
-      {/* ปุ่มกดเพื่อเลื่อนลงล่างสุด (แสดงเมื่อมีข้อความใหม่และผู้ใช้เลื่อนหน้าจอขึ้นไป) */}
+      {/* Scroll to bottom */}
       {showNewMessageButton && (
         <button
           onClick={handleScrollToBottomClick}
-          className="absolute right-6 bottom-4 flex items-center gap-2 bg-slate-800/30 text-white p-3 rounded-full shadow-xl border border-slate-600 transition-transform hover:scale-105 z-10"
-          title="scroll down"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium transition-all"
+          style={{
+            position: 'absolute',
+            right: 24,
+            bottom: 16,
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border)',
+            color: 'var(--text-secondary)',
+            boxShadow: 'var(--shadow-md)',
+            animation: 'scaleIn 0.18s cubic-bezier(0.16,1,0.3,1) both',
+          }}
         >
-          <ArrowDown size={20} className="text-blue-400 animate-bounce" />
+          <ArrowDown size={14} style={{ color: 'var(--accent)' }} />
+          New messages
         </button>
       )}
     </div>
