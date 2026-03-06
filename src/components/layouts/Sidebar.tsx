@@ -20,61 +20,29 @@ export const Sidebar: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   );
 
   return (
-    <div
-      className="flex flex-col h-full"
-      style={{ width: '350px', minWidth: '350px' }}
-    >
-      {/* Sidebar Header */}
-      <div
-        className="flex items-center justify-between px-4 shrink-0"
-        style={{
-          height: '56px',
-          borderBottom: '1px solid var(--border)',
-          background: 'var(--bg-sidebar)',
-        }}
-      >
+    <div className="flex h-full min-w-[350px] w-[350px] flex-col bg-[var(--bg-sidebar)]">
+      <div className="flex h-14 shrink-0 items-center justify-between border-b border-[var(--border)] px-4">
         <div className="flex items-center gap-2">
-          <div
-            className="w-6 h-6 rounded-lg flex items-center justify-center"
-            style={{
-              background: 'var(--accent)',
-              boxShadow: '0 2px 8px var(--accent-subtle)',
-            }}
-          >
-            <span
-              style={{ color: '#fff', fontSize: '0.7rem', fontWeight: 700 }}
-            >
-              AI
-            </span>
+          <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-[var(--accent)] shadow-[0_2px_8px_var(--accent-subtle)]">
+            <span className="text-[0.7rem] font-bold text-white">AI</span>
           </div>
-          <span
-            style={{
-              fontWeight: 700,
-              fontSize: '0.9rem',
-              color: 'var(--text-primary)',
-              letterSpacing: '-0.01em',
-            }}
-          >
+          <span className="text-[0.9rem] font-bold tracking-[-0.01em] text-[var(--text-primary)]">
             System Control
           </span>
         </div>
+
         <button onClick={onClose} className="icon-btn" title="Close sidebar">
           <X size={16} />
         </button>
       </div>
 
-      {/* Tabs */}
       <Tabs
         tabs={menuTabs}
         activeTab={activeTab}
         onChange={(id) => setActiveTab(id as TabType)}
       />
 
-      {/* Content */}
-      <div
-        className="flex-1 overflow-y-auto custom-scrollbar p-4"
-        style={{ background: 'var(--bg-sidebar)' }}
-      >
+      <div className="custom-scrollbar flex-1 overflow-y-auto bg-[var(--bg-sidebar)] p-4">
         {activeTab === 'history' && <ChatHistoryTab />}
         {activeTab === 'models' && <TabModels />}
         {activeTab === 'settings' && <TabSettings />}
