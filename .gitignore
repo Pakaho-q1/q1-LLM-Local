@@ -17,4 +17,5 @@ yarn-error.log*
 .idea/
 *.suo
 *.ntvs*
+.md
 node_modules/
