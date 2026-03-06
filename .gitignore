@@ -19,6 +19,7 @@
 **.vscode/
 **.idea/
 **upload_to_github.py
+**upload_to_github1.py
 **git-upload-config.json
 **README.md
 *data/*
