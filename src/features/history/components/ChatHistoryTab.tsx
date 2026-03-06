@@ -39,6 +39,7 @@ export const ChatHistoryTab: React.FC = () => {
   useEffect(() => {
     fetchSessions();
   }, [fetchSessions]);
+
   useEffect(() => {
     setPage(1);
   }, [search]);
@@ -50,7 +51,7 @@ export const ChatHistoryTab: React.FC = () => {
       setSelected(savedId);
       getChatHistory(savedId);
     }
-  }, [sessions]);
+  }, [sessions, getChatHistory, lastSessionKey, selected]);
 
   useEffect(() => {
     if (
@@ -60,7 +61,7 @@ export const ChatHistoryTab: React.FC = () => {
     ) {
       setSelected(null);
     }
-  }, [sessions]);
+  }, [sessions, selected]);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return sessions;
@@ -100,38 +101,13 @@ export const ChatHistoryTab: React.FC = () => {
     setPendingId(null);
   };
 
-  const inputStyle: React.CSSProperties = {
-    width: '100%',
-    padding: '8px 12px',
-    fontSize: '0.83rem',
-    background: 'var(--bg-elevated)',
-    border: '1px solid var(--border)',
-    borderRadius: 8,
-    color: 'var(--text-primary)',
-    outline: 'none',
-    transition: 'border-color 0.15s, box-shadow 0.15s',
-  };
+  const inputClassName =
+    'w-full rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] px-3 py-2 text-[0.83rem] text-[var(--text-primary)] outline-none transition focus:border-[var(--accent)]';
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      {/* Header */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: 2,
-        }}
-      >
-        <span
-          style={{
-            fontSize: '0.78rem',
-            fontWeight: 600,
-            textTransform: 'uppercase',
-            letterSpacing: '0.06em',
-            color: 'var(--text-tertiary)',
-          }}
-        >
+    <div className="flex flex-col gap-2.5">
+      <div className="mb-0.5 flex items-center justify-between">
+        <span className="text-[0.78rem] font-semibold uppercase tracking-[0.06em] text-[var(--text-tertiary)]">
           {loading
             ? '...'
             : `${filtered.length} Session${filtered.length !== 1 ? 's' : ''}`}
@@ -141,153 +117,67 @@ export const ChatHistoryTab: React.FC = () => {
             setFormTitle('New Chat');
             setCreateOpen(true);
           }}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 5,
-            padding: '6px 12px',
-            borderRadius: 8,
-            fontSize: '0.78rem',
-            fontWeight: 600,
-            background: 'var(--accent)',
-            color: '#fff',
-            border: 'none',
-            cursor: 'pointer',
-            boxShadow:
-              '0 1px 4px color-mix(in srgb, var(--accent) 35%, transparent)',
-            transition: 'opacity 0.15s',
-          }}
+          className="flex items-center gap-1.5 rounded-lg bg-[var(--accent)] px-3 py-1.5 text-[0.78rem] font-semibold text-white shadow-[0_1px_4px_color-mix(in_srgb,var(--accent)_35%,transparent)] transition hover:opacity-90"
         >
           <Plus size={13} /> New Chat
         </button>
       </div>
 
-      {/* Search */}
-      <div style={{ position: 'relative' }}>
+      <div className="relative">
         <Search
           size={13}
-          style={{
-            position: 'absolute',
-            left: 10,
-            top: '50%',
-            transform: 'translateY(-50%)',
-            color: 'var(--text-tertiary)',
-            pointerEvents: 'none',
-          }}
+          className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]"
         />
         <input
           placeholder="Search sessions…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          style={{ ...inputStyle, paddingLeft: 30 }}
+          className={`${inputClassName} pl-[30px]`}
         />
       </div>
 
-      {error && (
-        <div
-          style={{
-            color: 'var(--danger)',
-            fontSize: '0.8rem',
-            padding: '4px 0',
-          }}
-        >
-          {error}
-        </div>
-      )}
+      {error && <div className="py-1 text-[0.8rem] text-[var(--danger)]">{error}</div>}
 
-      {/* Session list */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <div className="flex flex-col gap-0.5">
         {loading && sessions.length === 0 ? (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '16px 0',
-              color: 'var(--text-tertiary)',
-              fontSize: '0.83rem',
-            }}
-          >
-            <span
-              style={{
-                width: 14,
-                height: 14,
-                border: '2px solid var(--accent)',
-                borderTopColor: 'transparent',
-                borderRadius: '50%',
-                display: 'inline-block',
-                animation: 'spinSlow 1s linear infinite',
-              }}
-            />
+          <div className="flex items-center gap-2 py-4 text-[0.83rem] text-[var(--text-tertiary)]">
+            <span className="inline-block h-3.5 w-3.5 animate-[spinSlow_1s_linear_infinite] rounded-full border-2 border-[var(--accent)] border-t-transparent" />
             Loading…
           </div>
         ) : paged.length === 0 ? (
-          <div
-            style={{
-              textAlign: 'center',
-              padding: '20px 0',
-              color: 'var(--text-tertiary)',
-              fontSize: '0.83rem',
-            }}
-          >
+          <div className="py-5 text-center text-[0.83rem] text-[var(--text-tertiary)]">
             {search ? 'No results' : 'No sessions yet'}
           </div>
         ) : (
-          paged.map((s, i) => {
+          paged.map((s) => {
             const isActive = selected === s.id;
+
             return (
               <div
                 key={s.id}
                 onClick={() => handleSelect(s.id)}
-                className="group"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  padding: '9px 10px',
-                  borderRadius: 10,
-                  cursor: 'pointer',
-                  background: isActive ? 'var(--accent-subtle)' : 'transparent',
-                  border: `1px solid ${isActive ? 'color-mix(in srgb, var(--accent) 28%, transparent)' : 'transparent'}`,
-                  transition: 'background 0.14s, border-color 0.14s',
-                  animation: `fadeIn 0.2s ${i * 0.02}s both`,
-                }}
-                onMouseEnter={(e) => {
-                  if (!isActive)
-                    e.currentTarget.style.background = 'var(--bg-hover)';
-                }}
-                onMouseLeave={(e) => {
-                  if (!isActive)
-                    e.currentTarget.style.background = 'transparent';
-                }}
+                className={`group flex cursor-pointer items-center rounded-[10px] border px-2.5 py-[9px] transition animate-[fadeIn_0.2s_both] ${
+                  isActive
+                    ? 'border-[color-mix(in_srgb,var(--accent)_28%,transparent)] bg-[var(--accent-subtle)]'
+                    : 'border-transparent hover:bg-[var(--bg-hover)]'
+                }`}
               >
                 <MessageSquare
                   size={13}
-                  style={{
-                    color: isActive ? 'var(--accent)' : 'var(--text-tertiary)',
-                    flexShrink: 0,
-                    marginRight: 9,
-                  }}
+                  className={`mr-2 shrink-0 ${isActive ? 'text-[var(--accent)]' : 'text-[var(--text-tertiary)]'}`}
                 />
-                <div style={{ flex: 1, minWidth: 0 }}>
+
+                <div className="min-w-0 flex-1">
                   <div
-                    style={{
-                      fontSize: '0.84rem',
-                      fontWeight: isActive ? 600 : 400,
-                      color: isActive ? 'var(--accent)' : 'var(--text-primary)',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
+                    className={`truncate text-[0.84rem] ${
+                      isActive
+                        ? 'font-semibold text-[var(--accent)]'
+                        : 'font-normal text-[var(--text-primary)]'
+                    }`}
                   >
                     {s.title}
                   </div>
-                  <div
-                    style={{
-                      fontSize: '0.7rem',
-                      color: 'var(--text-tertiary)',
-                      marginTop: 1,
-                    }}
-                  >
+                  <div className="mt-0.5 text-[0.7rem] text-[var(--text-tertiary)]">
                     {s.updated_at
                       ? new Date(s.updated_at * 1000).toLocaleDateString(
                           undefined,
@@ -296,8 +186,8 @@ export const ChatHistoryTab: React.FC = () => {
                       : ''}
                   </div>
                 </div>
-                {/* Hover actions */}
-                <div className="group-hover:opacity-100 flex items-center gap-2 opacity-0 transition-opacity duration-140">
+
+                <div className="flex items-center gap-2 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
                   <button
                     type="button"
                     onClick={(e) => {
@@ -306,15 +196,7 @@ export const ChatHistoryTab: React.FC = () => {
                       setFormTitle(s.title);
                       setRenameOpen(true);
                     }}
-                    className="
-                    flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-[7px] cursor-pointer
-                    border-[1px] border-solid border-stone-500/30
-                    bg-stone-500/30
-                    text-stone-500
-                    transition-all duration-120
-                    hover:bg-stone-500
-                    hover:text-white
-                  "
+                    className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-[7px] border border-stone-500/30 bg-stone-500/30 text-stone-500 transition hover:bg-stone-500 hover:text-white"
                     title="Rename"
                   >
                     <Edit2 size={12} />
@@ -327,15 +209,7 @@ export const ChatHistoryTab: React.FC = () => {
                       setPendingId(s.id);
                       setDeleteOpen(true);
                     }}
-                    className="
-                    flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-[7px] cursor-pointer
-                    border-[1px] border-solid border-[color-mix(in_srgb,var(--danger)_30%,transparent)]
-                    bg-[color-mix(in_srgb,var(--danger)_8%,transparent)]
-                    text-[var(--danger)]
-                    transition-all duration-120
-                    hover:bg-[var(--danger)]
-                    hover:text-white
-                  "
+                    className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-[7px] border border-[color-mix(in_srgb,var(--danger)_30%,transparent)] bg-[color-mix(in_srgb,var(--danger)_8%,transparent)] text-[var(--danger)] transition hover:bg-[var(--danger)] hover:text-white"
                     title="Delete"
                   >
                     <Trash2 size={12} />
@@ -347,22 +221,12 @@ export const ChatHistoryTab: React.FC = () => {
         )}
       </div>
 
-      {/* Pagination */}
       {totalPages > 1 && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            paddingTop: 8,
-            borderTop: '1px solid var(--border)',
-            marginTop: 2,
-          }}
-        >
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
+        <div className="mt-0.5 flex items-center justify-between border-t border-[var(--border)] pt-2">
+          <span className="text-[0.75rem] text-[var(--text-tertiary)]">
             {page} / {totalPages}
           </span>
-          <div style={{ display: 'flex', gap: 4 }}>
+          <div className="flex gap-1">
             {[
               {
                 icon: <ChevronLeft size={13} />,
@@ -379,19 +243,7 @@ export const ChatHistoryTab: React.FC = () => {
                 key={i}
                 onClick={action}
                 disabled={disabled}
-                style={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: 7,
-                  border: '1px solid var(--border)',
-                  background: 'var(--bg-elevated)',
-                  color: 'var(--text-secondary)',
-                  cursor: disabled ? 'not-allowed' : 'pointer',
-                  opacity: disabled ? 0.4 : 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
+                className="flex h-[26px] w-[26px] items-center justify-center rounded-[7px] border border-[var(--border)] bg-[var(--bg-elevated)] text-[var(--text-secondary)] transition disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {icon}
               </button>
@@ -400,7 +252,6 @@ export const ChatHistoryTab: React.FC = () => {
         </div>
       )}
 
-      {/* Modals */}
       <Modal
         isOpen={createOpen}
         onClose={() => setCreateOpen(false)}
@@ -410,15 +261,7 @@ export const ChatHistoryTab: React.FC = () => {
         confirmVariant="primary"
       >
         <div>
-          <label
-            style={{
-              display: 'block',
-              fontSize: '0.8rem',
-              fontWeight: 500,
-              color: 'var(--text-secondary)',
-              marginBottom: 6,
-            }}
-          >
+          <label className="mb-1.5 block text-[0.8rem] font-medium text-[var(--text-secondary)]">
             Chat Title
           </label>
           <input
@@ -426,7 +269,7 @@ export const ChatHistoryTab: React.FC = () => {
             onChange={(e) => setFormTitle(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
             autoFocus
-            style={inputStyle}
+            className={inputClassName}
             placeholder="Enter a title…"
           />
         </div>
@@ -441,15 +284,7 @@ export const ChatHistoryTab: React.FC = () => {
         confirmVariant="primary"
       >
         <div>
-          <label
-            style={{
-              display: 'block',
-              fontSize: '0.8rem',
-              fontWeight: 500,
-              color: 'var(--text-secondary)',
-              marginBottom: 6,
-            }}
-          >
+          <label className="mb-1.5 block text-[0.8rem] font-medium text-[var(--text-secondary)]">
             New Title
           </label>
           <input
@@ -457,7 +292,7 @@ export const ChatHistoryTab: React.FC = () => {
             onChange={(e) => setFormTitle(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleRename()}
             autoFocus
-            style={inputStyle}
+            className={inputClassName}
           />
         </div>
       </Modal>
@@ -470,7 +305,7 @@ export const ChatHistoryTab: React.FC = () => {
         confirmText="Delete"
         confirmVariant="danger"
       >
-        <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+        <p className="text-[0.875rem] text-[var(--text-secondary)]">
           This session will be permanently deleted and cannot be recovered.
         </p>
       </Modal>

@@ -90,41 +90,11 @@ export const MainLayout: React.FC = () => {
     }
   };
 
-  const connDot =
-    connectionState === ConnectionState.CONNECTED
-      ? 'var(--success)'
-      : connectionState === ConnectionState.CONNECTING
-        ? 'var(--warning)'
-        : connectionState === ConnectionState.ERROR
-          ? 'var(--danger)'
-          : 'var(--text-tertiary)';
-
-  const modelStatus = isModelLoading
-    ? {
-        label: 'Loading',
-        color: 'var(--warning)',
-        bgColor: 'color-mix(in srgb, var(--warning) 10%, transparent)',
-        borderColor: 'color-mix(in srgb, var(--warning) 30%, transparent)',
-      }
-    : isModelRunning
-      ? {
-          label: currentModel?.split('/').pop() || 'Running',
-          color: 'var(--success)',
-          bgColor: 'color-mix(in srgb, var(--success) 10%, transparent)',
-          borderColor: 'color-mix(in srgb, var(--success) 30%, transparent)',
-        }
-      : {
-          label: 'No Model',
-          color: 'var(--text-tertiary)',
-          bgColor: 'var(--bg-hover)',
-          borderColor: 'var(--border)',
-        };
 
   return (
     <div className="flex h-screen overflow-hidden bg-[var(--bg-base)] text-[var(--text-primary)]">
       <aside
-        className="z-30 shrink-0 overflow-hidden border-r border-[var(--border)] bg-[var(--bg-sidebar)] transition-[width] duration-300"
-        style={{ width: isSidebarOpen ? '350px' : '0px' }}
+        className={`z-30 shrink-0 overflow-hidden border-r border-[var(--border)] bg-[var(--bg-sidebar)] transition-[width] duration-300 ${isSidebarOpen ? 'w-[350px]' : 'w-0'}`}
       >
         <Sidebar onClose={() => setIsSidebarOpen(false)} />
       </aside>
@@ -142,15 +112,15 @@ export const MainLayout: React.FC = () => {
 
             <div className="flex items-center gap-2">
               <span
-                className="inline-block h-[7px] w-[7px] rounded-full shadow-[0_0_6px_var(--dot-color)]"
-                style={{
-                  background: connDot,
-                  ['--dot-color' as string]: connDot,
-                  animation:
-                    connectionState === ConnectionState.CONNECTING
-                      ? 'pulseDot 1.2s ease-in-out infinite'
-                      : 'none',
-                }}
+                className={`inline-block h-[7px] w-[7px] rounded-full ${
+                  connectionState === ConnectionState.CONNECTED
+                    ? 'bg-[var(--success)] shadow-[0_0_6px_var(--success)]'
+                    : connectionState === ConnectionState.CONNECTING
+                      ? 'animate-[pulseDot_1.2s_ease-in-out_infinite] bg-[var(--warning)] shadow-[0_0_6px_var(--warning)]'
+                      : connectionState === ConnectionState.ERROR
+                        ? 'bg-[var(--danger)] shadow-[0_0_6px_var(--danger)]'
+                        : 'bg-[var(--text-tertiary)] shadow-[0_0_6px_var(--text-tertiary)]'
+                }`}
               />
               <span className="whitespace-nowrap text-[1.3rem] font-bold tracking-[-0.02em]">
                 q1-LLM-Local
@@ -160,28 +130,28 @@ export const MainLayout: React.FC = () => {
 
           <div className="flex min-w-0 items-center gap-2">
             <div
-              className="shrink-0 truncate rounded-full border px-2.5 py-1 text-xs font-medium"
-              style={{
-                color: modelStatus.color,
-                background: modelStatus.bgColor,
-                borderColor: modelStatus.borderColor,
-                maxWidth: 160,
-              }}
+              className={`max-w-40 shrink-0 truncate rounded-full border px-2.5 py-1 text-xs font-medium ${
+                isModelLoading
+                  ? 'border-[color-mix(in_srgb,var(--warning)_30%,transparent)] bg-[color-mix(in_srgb,var(--warning)_10%,transparent)] text-[var(--warning)]'
+                  : isModelRunning
+                    ? 'border-[color-mix(in_srgb,var(--success)_30%,transparent)] bg-[color-mix(in_srgb,var(--success)_10%,transparent)] text-[var(--success)]'
+                    : 'border-[var(--border)] bg-[var(--bg-hover)] text-[var(--text-tertiary)]'
+              }`}
             >
               <div className="flex items-center gap-1.5">
                 {isModelLoading ? (
                   <Spinner />
                 ) : (
                   <span
-                    className="inline-block h-1.5 w-1.5 shrink-0 rounded-full"
-                    style={{
-                      background: modelStatus.color,
-                      animation: isModelRunning ? 'pulseDot 2s ease-in-out infinite' : 'none',
-                    }}
+                    className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${
+                      isModelRunning
+                        ? 'animate-[pulseDot_2s_ease-in-out_infinite] bg-[var(--success)]'
+                        : 'bg-[var(--text-tertiary)]'
+                    }`}
                   />
                 )}
                 <span className="truncate" title={isModelRunning ? currentModel || 'Running' : undefined}>
-                  {modelStatus.label}
+                  {isModelLoading ? 'Loading' : isModelRunning ? currentModel?.split('/').pop() || 'Running' : 'No Model'}
                 </span>
               </div>
             </div>

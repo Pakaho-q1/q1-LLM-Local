@@ -52,7 +52,6 @@ const IdleScreen: React.FC<{ onQuickPrompt: (t: string) => void }> = ({ onQuickP
           key={i}
           onClick={() => onQuickPrompt(p.prompt)}
           className="group flex items-center gap-2.5 rounded-xl border border-[var(--border)] bg-[var(--bg-surface)] px-3.5 py-3 text-left text-[var(--text-primary)] shadow-[var(--shadow-sm)] transition-all duration-150 hover:-translate-y-px hover:border-[color-mix(in_srgb,var(--accent)_40%,transparent)] hover:shadow-[0_4px_16px_color-mix(in_srgb,var(--accent)_12%,transparent)]"
-          style={{ animation: `fadeIn 0.5s cubic-bezier(0.16,1,0.3,1) both`, animationDelay: `${0.22 + i * 0.05}s` }}
         >
           <span className="shrink-0 text-[var(--accent)] opacity-85">{p.icon}</span>
           <div className="min-w-0 flex-1">
