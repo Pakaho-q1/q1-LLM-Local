@@ -49,6 +49,36 @@ const MAX_RECONNECT_ATTEMPTS = 5;
 const genRequestId = () =>
   `req_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 
+const normalizeIncoming = (data: any): any => {
+  if (!data || typeof data !== 'object') return data;
+
+  if (Array.isArray(data.choices)) {
+    const choice = data.choices[0];
+    const deltaContent = choice?.delta?.content;
+    const finishReason = choice?.finish_reason;
+
+    if (typeof deltaContent === 'string' && deltaContent.length > 0) {
+      return {
+        type: 'chunk',
+        content: deltaContent,
+        id: data.id,
+        raw: data,
+      };
+    }
+
+    if (finishReason) {
+      return {
+        type: 'done',
+        finish_reason: finishReason,
+        id: data.id,
+        raw: data,
+      };
+    }
+  }
+
+  return data;
+};
+
 export const SSEProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
@@ -98,7 +128,7 @@ export const SSEProvider: React.FC<{ children: ReactNode }> = ({
             notifyChatListeners('[DONE]');
             return;
           }
-          const data = JSON.parse(ev.data);
+          const data = normalizeIncoming(JSON.parse(ev.data));
           processIncoming(data);
         } catch {}
       };
@@ -130,7 +160,7 @@ export const SSEProvider: React.FC<{ children: ReactNode }> = ({
               notifyChatListeners('[DONE]');
               return;
             }
-            const data = JSON.parse((ev as any).data);
+            const data = normalizeIncoming(JSON.parse((ev as any).data));
             processIncoming(data);
           } catch {}
         });
@@ -193,14 +223,22 @@ export const SSEProvider: React.FC<{ children: ReactNode }> = ({
       const action = (payload.action as string) || '';
 
       try {
-        if (action === 'chat') {
-          const req: any = { ...payload, client_id: CLIENT_ID };
+        if (action === 'chat_completion') {
+          const req: any = {
+            ...payload,
+            stream: true,
+            client_id: CLIENT_ID,
+          };
           if (!req.request_id) req.request_id = genRequestId();
-          const resp = await fetch(`${API_BASE}/sse/chat`, {
+          delete req.action;
+
+          const resp = await fetch(`${API_BASE}/v1/chat/completions`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(req),
           });
+          if (!resp.ok)
+            throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
           return resp.json();
         }
 

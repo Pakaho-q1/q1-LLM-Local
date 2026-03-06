@@ -1,20 +1,16 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { useSSE } from '../../../contexts/SSEContext';
 import { ChatMessage } from '../../../types/chat.types';
+import {
+  Attachment,
+  InternalMessage,
+  useChatStore,
+} from '../store/chat.store';
 
-export interface Attachment {
-  url: string;
-  type: string;
-  name?: string;
-  file?: File;
-}
-
-type InternalMessage = ChatMessage & {
-  id: string;
-  role: 'user' | 'assistant' | 'system' | 'model';
-  attachments?: Attachment[];
-  isTyping?: boolean;
-};
+const toOpenAIMessage = (message: InternalMessage): ChatMessage => ({
+  role: message.role,
+  content: message.content,
+});
 
 export const useChat = () => {
   const {
@@ -30,21 +26,25 @@ export const useChat = () => {
   const creatingSessionRef = useRef(false);
   const currentConversationRef = useRef<string | null>(currentConversation);
 
+  const {
+    messages,
+    isGenerating,
+    chatError,
+    setMessages,
+    pushMessage,
+    appendAssistantChunk,
+    setGenerating,
+    setChatError,
+    stopAssistantTyping,
+    clearMessages,
+  } = useChatStore();
+
   useEffect(() => {
     currentConversationRef.current = currentConversation;
   }, [currentConversation]);
 
-  const [messages, setMessages] = useState<InternalMessage[]>([]);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [chatError, setChatError] = useState<string | null>(null);
-
   const idRef = useRef(0);
-  const messagesRef = useRef<InternalMessage[]>([]);
   const createId = () => `msg-${Date.now()}-${idRef.current++}`;
-
-  useEffect(() => {
-    messagesRef.current = messages;
-  }, [messages]);
 
   useEffect(() => {
     if (!lastMessage) return;
@@ -62,105 +62,59 @@ export const useChat = () => {
         }));
         setMessages(historyMessages);
         setChatError(null);
-        setIsGenerating(false);
+        setGenerating(false);
       }
     } catch (err) {
       console.error('Error processing history:', err);
     }
-  }, [lastMessage]);
+  }, [lastMessage, setGenerating, setMessages, setChatError]);
 
   useEffect(() => {
     const handleIncoming = (msg: any) => {
       try {
         if (msg === '[DONE]') {
-          setMessages((prev) => {
-            const copy = [...prev];
-            const last = copy[copy.length - 1];
-            if (last?.role === 'assistant')
-              copy[copy.length - 1] = { ...last, isTyping: false };
-            return copy;
-          });
-          setIsGenerating(false);
-          return;
-        }
-
-        if (msg.choices && Array.isArray(msg.choices)) {
-          const delta = msg.choices[0]?.delta;
-          const finish = msg.choices[0]?.finish_reason;
-          if (delta?.content) appendAssistantChunk(delta.content, msg.id);
-          if (finish != null) {
-            setIsGenerating(false);
-            setMessages((prev) => {
-              const copy = [...prev];
-              const last = copy[copy.length - 1];
-              if (last?.role === 'assistant')
-                copy[copy.length - 1] = { ...last, isTyping: false };
-              return copy;
-            });
-          }
+          stopAssistantTyping();
+          setGenerating(false);
           return;
         }
 
         if (msg.type === 'chunk' && msg.content) {
-          appendAssistantChunk(msg.content);
-        } else if (msg.type === 'done' || msg.type === 'success') {
-          setIsGenerating(false);
-          setMessages((prev) => {
-            const copy = [...prev];
-            const last = copy[copy.length - 1];
-            if (last?.role === 'assistant')
-              copy[copy.length - 1] = { ...last, isTyping: false };
-            return copy;
-          });
-        } else if (msg.type === 'error') {
+          appendAssistantChunk(msg.content, msg.id);
+          return;
+        }
+
+        if (msg.type === 'done' || msg.type === 'success') {
+          setGenerating(false);
+          stopAssistantTyping();
+          return;
+        }
+
+        if (msg.type === 'error') {
           setChatError(msg.message || 'Unknown error');
-          setIsGenerating(false);
+          setGenerating(false);
         }
       } catch (err) {
         setChatError(err instanceof Error ? err.message : 'Processing error');
-        setIsGenerating(false);
+        setGenerating(false);
       }
     };
 
     return subscribeToChat(handleIncoming);
-  }, [subscribeToChat]);
-
-  const appendAssistantChunk = (chunk: string, msgId?: string) => {
-    setMessages((prev) => {
-      const copy = [...prev];
-      const last = copy[copy.length - 1];
-      if (last?.role === 'assistant') {
-        copy[copy.length - 1] = {
-          ...last,
-          content: last.content + chunk,
-          isTyping: true,
-        };
-      } else {
-        copy.push({
-          id: msgId || createId(),
-          role: 'assistant',
-          content: chunk,
-          isTyping: true,
-        });
-      }
-      return copy;
-    });
-  };
+  }, [
+    appendAssistantChunk,
+    setGenerating,
+    setChatError,
+    stopAssistantTyping,
+    subscribeToChat,
+  ]);
 
   const stopGeneration = useCallback(async () => {
-    setIsGenerating(false);
-
-    setMessages((prev) => {
-      const copy = [...prev];
-      const last = copy[copy.length - 1];
-      if (last?.role === 'assistant')
-        copy[copy.length - 1] = { ...last, isTyping: false };
-      return copy;
-    });
+    setGenerating(false);
+    stopAssistantTyping();
     try {
       await sendPayload({ action: 'stop_generation' });
     } catch (_) {}
-  }, [sendPayload]);
+  }, [sendPayload, setGenerating, stopAssistantTyping]);
 
   const sendMessage = useCallback(
     async (
@@ -168,6 +122,7 @@ export const useChat = () => {
       file: File | null = null,
       params: Record<string, unknown> = {},
       systemPrompt = '',
+      model = 'default',
     ) => {
       if ((!text.trim() && !file) || !isConnected || isGenerating) return;
 
@@ -192,19 +147,16 @@ export const useChat = () => {
           content: text,
           attachments,
         };
-        setIsGenerating(true);
-        setMessages((prev) => {
-          const next = [...prev, userMsg];
-          messagesRef.current = next;
-          return next;
-        });
 
-        let history = messagesRef.current.map((m) => ({
-          role: m.role,
-          content: m.content,
-        }));
-        if (systemPrompt.trim())
+        setGenerating(true);
+        pushMessage(userMsg);
+
+        let history = useChatStore
+          .getState()
+          .messages.map((m) => toOpenAIMessage(m));
+        if (systemPrompt.trim()) {
           history = [{ role: 'system', content: systemPrompt }, ...history];
+        }
 
         if (!currentConversationRef.current && !creatingSessionRef.current) {
           creatingSessionRef.current = true;
@@ -225,8 +177,6 @@ export const useChat = () => {
           }
         }
 
-        const request_id = `req_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-
         if (file) {
           const fd = new FormData();
           fd.append('file', file, file.name);
@@ -234,36 +184,33 @@ export const useChat = () => {
           fd.append('content', text);
           fd.append('messages', JSON.stringify(history));
           fd.append('params', JSON.stringify(params));
-          fd.append('request_id', request_id);
-          if (currentConversationRef.current)
+          if (currentConversationRef.current) {
             fd.append('conversation_id', currentConversationRef.current);
+          }
 
           await sendForm('chat_file', fd);
         } else {
           const payload: Record<string, unknown> = {
-            action: 'chat',
-            content: text,
+            action: 'chat_completion',
+            model,
             messages: history,
-            params,
-            request_id,
+            stream: true,
+            ...params,
           };
-          if (currentConversationRef.current)
+          if (currentConversationRef.current) {
             payload.conversation_id = currentConversationRef.current;
+          }
           await sendPayload(payload);
         }
       } catch (err) {
         setChatError(err instanceof Error ? err.message : 'Failed to send');
-        setIsGenerating(false);
+        setGenerating(false);
       }
     },
-    [isConnected, isGenerating, sendPayload, sendForm],
+    [isConnected, isGenerating, pushMessage, sendForm, sendPayload, setGenerating, setChatError],
   );
 
-  const clearMessages = useCallback(() => {
-    setMessages([]);
-    setChatError(null);
-  }, []);
-  const clearError = useCallback(() => setChatError(null), []);
+  const clearError = useCallback(() => setChatError(null), [setChatError]);
 
   return {
     isConnected,
