@@ -31,132 +31,45 @@ export const Modal: React.FC<ModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 100,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 16,
-        animation: 'fadeIn 0.15s both',
-      }}
-    >
-      {/* Backdrop */}
+    <div className="fixed inset-0 z-[100] flex animate-[fadeIn_0.15s_both] items-center justify-center p-4">
       <div
         onClick={onClose}
-        style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(0,0,0,0.5)',
-          backdropFilter: 'blur(4px)',
-          WebkitBackdropFilter: 'blur(4px)',
-        }}
+        className="fixed inset-0 bg-black/50 backdrop-blur-[4px]"
       />
 
-      {/* Panel */}
-      <div
-        style={{
-          position: 'relative',
-          width: '100%',
-          maxWidth: 440,
-          background: 'var(--bg-surface)',
-          border: '1px solid var(--border)',
-          borderRadius: 14,
-          boxShadow: 'var(--shadow-lg)',
-          animation: 'scaleIn 0.2s cubic-bezier(0.16,1,0.3,1) both',
-          overflow: 'hidden',
-        }}
-      >
-        {/* Header */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '14px 18px',
-            borderBottom: '1px solid var(--border)',
-          }}
-        >
-          <span
-            style={{
-              fontSize: '0.9rem',
-              fontWeight: 600,
-              color: 'var(--text-primary)',
-            }}
-          >
+      <div className="relative w-full max-w-[440px] overflow-hidden rounded-[14px] border border-[var(--border)] bg-[var(--bg-surface)] shadow-[var(--shadow-lg)] animate-[scaleIn_0.2s_cubic-bezier(0.16,1,0.3,1)_both]">
+        <div className="flex items-center justify-between border-b border-[var(--border)] px-[18px] py-[14px]">
+          <span className="text-[0.9rem] font-semibold text-[var(--text-primary)]">
             {title}
           </span>
           <button
             onClick={onClose}
-            style={{
-              width: 28,
-              height: 28,
-              borderRadius: 8,
-              border: 'none',
-              background: 'var(--bg-hover)',
-              color: 'var(--text-secondary)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
+            className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--bg-hover)] text-[var(--text-secondary)]"
           >
             <X size={14} />
           </button>
         </div>
 
-        {/* Body */}
-        <div style={{ padding: '18px 18px 14px' }}>{children}</div>
+        <div className="px-[18px] pb-[14px] pt-[18px]">{children}</div>
 
-        {/* Footer */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'flex-end',
-            gap: 8,
-            padding: '12px 18px',
-            background: 'var(--bg-elevated)',
-            borderTop: '1px solid var(--border)',
-          }}
-        >
+        <div className="flex justify-end gap-2 border-t border-[var(--border)] bg-[var(--bg-elevated)] px-[18px] py-3">
           <button
             onClick={onClose}
-            style={{
-              padding: '8px 16px',
-              borderRadius: 8,
-              fontSize: '0.83rem',
-              fontWeight: 500,
-              background: 'var(--bg-surface)',
-              border: '1px solid var(--border)',
-              color: 'var(--text-secondary)',
-              cursor: 'pointer',
-              transition: 'all 0.12s',
-            }}
+            className="rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] px-4 py-2 text-[0.83rem] font-medium text-[var(--text-secondary)] transition"
           >
             Cancel
           </button>
+
           {onConfirm && (
             <button
               onClick={() => {
                 onConfirm();
               }}
-              style={{
-                padding: '8px 18px',
-                borderRadius: 8,
-                fontSize: '0.83rem',
-                fontWeight: 600,
-                background:
-                  confirmVariant === 'danger'
-                    ? 'var(--danger)'
-                    : 'var(--accent)',
-                color: '#fff',
-                border: 'none',
-                cursor: 'pointer',
-                boxShadow: `0 1px 4px ${confirmVariant === 'danger' ? 'color-mix(in srgb, var(--danger) 35%, transparent)' : 'color-mix(in srgb, var(--accent) 35%, transparent)'}`,
-                transition: 'all 0.12s',
-              }}
+              className={`rounded-lg px-[18px] py-2 text-[0.83rem] font-semibold text-white transition ${
+                confirmVariant === 'danger'
+                  ? 'bg-[var(--danger)] shadow-[0_1px_4px_color-mix(in_srgb,var(--danger)_35%,transparent)]'
+                  : 'bg-[var(--accent)] shadow-[0_1px_4px_color-mix(in_srgb,var(--accent)_35%,transparent)]'
+              }`}
             >
               {confirmText}
             </button>

@@ -6,71 +6,26 @@ interface StatusBadgeProps {
 }
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, label }) => {
-  const config = {
-    running: {
-      dot: 'var(--success)',
-      text: 'var(--success)',
-      bg: 'var(--success)',
-      bgOp: '0.1',
-      border: 'var(--success)',
-      borderOp: '0.3',
-      pulse: true,
-    },
-    loading: {
-      dot: 'var(--warning)',
-      text: 'var(--warning)',
-      bg: 'var(--warning)',
-      bgOp: '0.1',
-      border: 'var(--warning)',
-      borderOp: '0.3',
-      pulse: false,
-    },
-    stopped: {
-      dot: 'var(--text-tertiary)',
-      text: 'var(--text-tertiary)',
-      bg: 'var(--bg-hover)',
-      bgOp: '1',
-      border: 'var(--border)',
-      borderOp: '1',
-      pulse: false,
-    },
-  }[status];
+  const statusClass =
+    status === 'running'
+      ? 'border-[color-mix(in_srgb,var(--success)_30%,transparent)] bg-[color-mix(in_srgb,var(--success)_10%,transparent)] text-[var(--success)]'
+      : status === 'loading'
+        ? 'border-[color-mix(in_srgb,var(--warning)_30%,transparent)] bg-[color-mix(in_srgb,var(--warning)_10%,transparent)] text-[var(--warning)]'
+        : 'border-[var(--border)] bg-[var(--bg-hover)] text-[var(--text-tertiary)]';
 
   return (
     <span
-      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border"
-      style={{
-        color: config.text,
-        background: `color-mix(in srgb, ${config.bg} ${parseInt(config.bgOp) * 100 || 10}%, transparent)`,
-        borderColor: `color-mix(in srgb, ${config.border} 30%, transparent)`,
-      }}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${statusClass}`}
     >
       {status === 'loading' ? (
-        <span
-          style={{
-            width: 8,
-            height: 8,
-            border: `2px solid ${config.dot}`,
-            borderTopColor: 'transparent',
-            borderRadius: '50%',
-            display: 'inline-block',
-            animation: 'spinSlow 1.2s linear infinite',
-            flexShrink: 0,
-          }}
-        />
+        <span className="inline-block h-2 w-2 shrink-0 animate-[spinSlow_1.2s_linear_infinite] rounded-full border-2 border-current border-t-transparent" />
       ) : (
         <span
-          style={{
-            width: 6,
-            height: 6,
-            borderRadius: '50%',
-            background: config.dot,
-            display: 'inline-block',
-            flexShrink: 0,
-            animation: config.pulse
-              ? 'pulseDot 1.5s ease-in-out infinite'
-              : 'none',
-          }}
+          className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${
+            status === 'running'
+              ? 'animate-[pulseDot_1.5s_ease-in-out_infinite] bg-[var(--success)]'
+              : 'bg-[var(--text-tertiary)]'
+          }`}
         />
       )}
       <span className="max-w-[120px] truncate">{label || status}</span>

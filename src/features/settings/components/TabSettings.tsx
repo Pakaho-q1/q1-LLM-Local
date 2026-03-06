@@ -4,7 +4,7 @@ import { useSettings as usePresetLogic } from '../hooks/useSettings';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { Combobox } from '@/components/ui/Combobox';
 import { Modal } from '@/components/ui/Modal';
-import { X, Save, Trash2, RefreshCw, RotateCcw } from 'lucide-react';
+import { X, Save } from 'lucide-react';
 
 interface SettingSliderProps {
   label: string;
@@ -25,46 +25,20 @@ const SettingSlider: React.FC<SettingSliderProps> = ({
   onChange,
   tooltip,
 }) => (
-  <div
-    style={{
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 6,
-      marginBottom: 14,
-    }}
-  >
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-      }}
-    >
+  <div className="mb-3.5 flex flex-col gap-1.5">
+    <div className="flex items-center justify-between">
       {tooltip ? (
         <Tooltip content={tooltip} position="right">
-          <label
-            style={{
-              fontSize: '0.8rem',
-              fontWeight: 500,
-              color: 'var(--text-secondary)',
-              borderBottom: '1px dotted var(--border-strong)',
-              cursor: 'help',
-            }}
-          >
+          <label className="cursor-help border-b border-dotted border-[var(--border-strong)] text-[0.8rem] font-medium text-[var(--text-secondary)]">
             {label}
           </label>
         </Tooltip>
       ) : (
-        <label
-          style={{
-            fontSize: '0.8rem',
-            fontWeight: 500,
-            color: 'var(--text-secondary)',
-          }}
-        >
+        <label className="text-[0.8rem] font-medium text-[var(--text-secondary)]">
           {label}
         </label>
       )}
+
       <input
         type="number"
         value={value}
@@ -72,26 +46,11 @@ const SettingSlider: React.FC<SettingSliderProps> = ({
         max={max}
         step={step}
         onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
-        style={{
-          width: 64,
-          textAlign: 'right',
-          fontSize: '0.78rem',
-          padding: '3px 8px',
-          borderRadius: 6,
-          background: 'var(--bg-elevated)',
-          border: '1px solid var(--border)',
-          color: 'var(--text-primary)',
-        }}
+        className="w-16 rounded-md border border-[var(--border)] bg-[var(--bg-elevated)] px-2 py-[3px] text-right text-[0.78rem] text-[var(--text-primary)]"
       />
     </div>
-    <div
-      style={{
-        position: 'relative',
-        height: 20,
-        display: 'flex',
-        alignItems: 'center',
-      }}
-    >
+
+    <div className="relative flex h-5 items-center">
       <input
         type="range"
         min={min}
@@ -99,17 +58,7 @@ const SettingSlider: React.FC<SettingSliderProps> = ({
         step={step}
         value={value}
         onChange={(e) => onChange(parseFloat(e.target.value))}
-        style={{
-          width: '100%',
-          height: 4,
-          borderRadius: 4,
-          background: `linear-gradient(to right, var(--accent) 0%, var(--accent) ${((value - min) / (max - min)) * 100}%, var(--border-strong) ${((value - min) / (max - min)) * 100}%, var(--border-strong) 100%)`,
-          appearance: 'none',
-          WebkitAppearance: 'none',
-          cursor: 'pointer',
-          outline: 'none',
-          accentColor: 'var(--accent)',
-        }}
+        className="h-1 w-full cursor-pointer appearance-none rounded bg-[var(--border-strong)] accent-[var(--accent)]"
       />
     </div>
   </div>
@@ -119,25 +68,8 @@ const Section: React.FC<{ title: string; children: React.ReactNode }> = ({
   title,
   children,
 }) => (
-  <section
-    style={{
-      background: 'var(--bg-elevated)',
-      border: '1px solid var(--border)',
-      borderRadius: 12,
-      padding: '14px 16px',
-      marginBottom: 12,
-    }}
-  >
-    <h3
-      style={{
-        fontSize: '0.75rem',
-        fontWeight: 600,
-        textTransform: 'uppercase',
-        letterSpacing: '0.06em',
-        color: 'var(--text-tertiary)',
-        marginBottom: 14,
-      }}
-    >
+  <section className="mb-3 rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] px-4 py-3.5">
+    <h3 className="mb-3.5 text-[0.75rem] font-semibold uppercase tracking-[0.06em] text-[var(--text-tertiary)]">
       {title}
     </h3>
     {children}
@@ -148,7 +80,6 @@ export const TabSettings: React.FC = () => {
   const { settings, updateSetting } = useSettingsContext();
   const {
     presets,
-    selectedPresetName,
     error,
     loadPreset,
     createPreset,
@@ -156,56 +87,31 @@ export const TabSettings: React.FC = () => {
     deletePreset,
     clearError,
   } = usePresetLogic();
+
   const [newPresetName, setNewPresetName] = useState('');
   const [selectedDropdown, setSelectedDropdown] = useState('');
   const [presetToDelete, setPresetToDelete] = useState<string | null>(null);
   const [presetToUpdate, setPresetToUpdate] = useState<string | null>(null);
 
   return (
-    <div style={{ paddingBottom: 40 }}>
+    <div className="pb-10">
       {error && (
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            padding: '10px 14px',
-            borderRadius: 8,
-            marginBottom: 12,
-            background: 'color-mix(in srgb, var(--danger) 10%, transparent)',
-            border:
-              '1px solid color-mix(in srgb, var(--danger) 30%, transparent)',
-            color: 'var(--danger)',
-            fontSize: '0.83rem',
-            animation: 'fadeIn 0.2s both',
-          }}
-        >
+        <div className="mb-3 flex animate-[fadeIn_0.2s_both] items-center justify-between rounded-lg border border-[color-mix(in_srgb,var(--danger)_30%,transparent)] bg-[color-mix(in_srgb,var(--danger)_10%,transparent)] px-3.5 py-2.5 text-[0.83rem] text-[var(--danger)]">
           <span>{error}</span>
-          <button
-            onClick={clearError}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              color: 'var(--danger)',
-            }}
-          >
+          <button onClick={clearError} className="text-[var(--danger)]">
             <X size={14} />
           </button>
         </div>
       )}
 
-      {/* Preset Manager */}
       <Section title="Presets">
-        <div style={{ marginBottom: 10 }}>
+        <div className="mb-2.5">
           <Combobox
             className="w-full"
             options={presets.map((p) => ({
               value: p.name,
               label: (
-                <span
-                  style={{ fontSize: '0.83rem', color: 'var(--text-primary)' }}
-                >
+                <span className="text-[0.83rem] text-[var(--text-primary)]">
                   {p.name}
                 </span>
               ),
@@ -215,54 +121,40 @@ export const TabSettings: React.FC = () => {
             placeholder="Search presets…"
           />
         </div>
-        <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+
+        <div className="mb-2.5 flex gap-1.5">
           {[
             {
               label: 'Load',
               action: () => selectedDropdown && loadPreset(selectedDropdown),
-              variant: 'success' as const,
+              className:
+                'border-[color-mix(in_srgb,var(--success)_35%,transparent)] bg-[color-mix(in_srgb,var(--success)_10%,transparent)] text-[var(--success)]',
             },
             {
               label: 'Update',
               action: () => setPresetToUpdate(selectedDropdown),
-              variant: 'primary' as const,
+              className:
+                'border-[color-mix(in_srgb,var(--accent)_35%,transparent)] bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] text-[var(--accent)]',
             },
             {
               label: 'Delete',
               action: () => setPresetToDelete(selectedDropdown),
-              variant: 'danger' as const,
+              className:
+                'border-[color-mix(in_srgb,var(--danger)_35%,transparent)] bg-[color-mix(in_srgb,var(--danger)_10%,transparent)] text-[var(--danger)]',
             },
-          ].map(({ label, action, variant }) => {
-            const colors = {
-              success: 'var(--success)',
-              primary: 'var(--accent)',
-              danger: 'var(--danger)',
-            };
-            return (
-              <button
-                key={label}
-                onClick={action}
-                disabled={!selectedDropdown}
-                style={{
-                  flex: 1,
-                  padding: '6px 0',
-                  borderRadius: 8,
-                  fontSize: '0.78rem',
-                  fontWeight: 600,
-                  border: `1px solid color-mix(in srgb, ${colors[variant]} 35%, transparent)`,
-                  background: `color-mix(in srgb, ${colors[variant]} 10%, transparent)`,
-                  color: colors[variant],
-                  cursor: !selectedDropdown ? 'not-allowed' : 'pointer',
-                  opacity: !selectedDropdown ? 0.4 : 1,
-                  transition: 'all 0.14s',
-                }}
-              >
-                {label}
-              </button>
-            );
-          })}
+          ].map(({ label, action, className }) => (
+            <button
+              key={label}
+              onClick={action}
+              disabled={!selectedDropdown}
+              className={`flex-1 rounded-lg border py-1.5 text-[0.78rem] font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${className}`}
+            >
+              {label}
+            </button>
+          ))}
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+
+        <div className="flex gap-2">
           <input
             type="text"
             placeholder="New preset name…"
@@ -273,7 +165,7 @@ export const TabSettings: React.FC = () => {
               newPresetName.trim() &&
               (createPreset(newPresetName, ''), setNewPresetName(''))
             }
-            style={{ flex: 1, padding: '7px 12px', fontSize: '0.8rem' }}
+            className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--bg-base)] px-3 py-[7px] text-[0.8rem] text-[var(--text-primary)]"
           />
           <button
             onClick={() => {
@@ -283,20 +175,7 @@ export const TabSettings: React.FC = () => {
               }
             }}
             disabled={!newPresetName.trim()}
-            style={{
-              padding: '7px 14px',
-              borderRadius: 8,
-              fontSize: '0.78rem',
-              fontWeight: 600,
-              background: 'var(--accent)',
-              color: '#fff',
-              border: 'none',
-              cursor: !newPresetName.trim() ? 'not-allowed' : 'pointer',
-              opacity: !newPresetName.trim() ? 0.4 : 1,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 5,
-            }}
+            className="flex items-center gap-1.5 rounded-lg bg-[var(--accent)] px-3.5 py-[7px] text-[0.78rem] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
           >
             <Save size={12} /> Save
           </button>
@@ -316,14 +195,11 @@ export const TabSettings: React.FC = () => {
         confirmText="Delete"
         confirmVariant="danger"
       >
-        <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-          Delete preset{' '}
-          <strong style={{ color: 'var(--text-primary)' }}>
-            "{presetToDelete}"
-          </strong>
-          ?
+        <p className="text-[0.875rem] text-[var(--text-secondary)]">
+          Delete preset <strong className="text-[var(--text-primary)]">"{presetToDelete}"</strong>?
         </p>
       </Modal>
+
       <Modal
         isOpen={!!presetToUpdate}
         onClose={() => setPresetToUpdate(null)}
@@ -337,34 +213,20 @@ export const TabSettings: React.FC = () => {
         confirmText="Update"
         confirmVariant="primary"
       >
-        <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-          Update{' '}
-          <strong style={{ color: 'var(--text-primary)' }}>
-            "{presetToUpdate}"
-          </strong>{' '}
-          with current settings?
+        <p className="text-[0.875rem] text-[var(--text-secondary)]">
+          Update <strong className="text-[var(--text-primary)]">"{presetToUpdate}"</strong> with current settings?
         </p>
       </Modal>
 
-      {/* System Prompt */}
       <Section title="System Prompt">
         <textarea
           value={settings.systemPrompt}
           onChange={(e) => updateSetting('systemPrompt', e.target.value)}
           rows={4}
-          style={{
-            width: '100%',
-            resize: 'vertical',
-            fontSize: '0.83rem',
-            padding: '10px 12px',
-            borderRadius: 8,
-            minHeight: 90,
-          }}
-          className="custom-scrollbar"
+          className="custom-scrollbar min-h-[90px] w-full resize-y rounded-lg border border-[var(--border)] bg-[var(--bg-base)] px-3 py-2.5 text-[0.83rem] text-[var(--text-primary)]"
         />
       </Section>
 
-      {/* Basic Sampling */}
       <Section title="Sampling">
         <SettingSlider
           label="Temperature"
@@ -404,7 +266,6 @@ export const TabSettings: React.FC = () => {
         />
       </Section>
 
-      {/* Penalties */}
       <Section title="Penalties">
         <SettingSlider
           label="Min P"
@@ -444,16 +305,8 @@ export const TabSettings: React.FC = () => {
         />
       </Section>
 
-      {/* Hardware */}
       <Section title="Hardware (Requires Reload)">
-        <p
-          style={{
-            fontSize: '0.76rem',
-            color: 'var(--text-tertiary)',
-            marginBottom: 12,
-            marginTop: -6,
-          }}
-        >
+        <p className="-mt-1.5 mb-3 text-[0.76rem] text-[var(--text-tertiary)]">
           Changes take effect after model reload.
         </p>
         <SettingSlider

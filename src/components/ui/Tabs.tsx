@@ -28,12 +28,7 @@ export const Tabs: React.FC<TabsProps> = ({ tabs, activeTab, onChange }) => {
   return (
     <div
       ref={containerRef}
-      className="relative flex"
-      style={{
-        borderBottom: '1px solid var(--border)',
-        background: 'var(--bg-sidebar)',
-        flexShrink: 0,
-      }}
+      className="relative flex shrink-0 border-b border-[var(--border)] bg-[var(--bg-sidebar)]"
     >
       {tabs.map((tab) => {
         const isActive = activeTab === tab.id;
@@ -42,33 +37,21 @@ export const Tabs: React.FC<TabsProps> = ({ tabs, activeTab, onChange }) => {
             key={tab.id}
             data-tab={tab.id}
             onClick={() => onChange(tab.id)}
-            className="relative flex items-center gap-1.5 px-4 py-3 text-xs font-semibold transition-colors duration-150"
-            style={{
-              color: isActive ? 'var(--accent)' : 'var(--text-secondary)',
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              letterSpacing: '0.01em',
-              textTransform: 'uppercase',
-            }}
+            className={`relative flex items-center gap-1.5 border-none bg-transparent px-4 py-3 text-xs font-semibold uppercase tracking-[0.01em] transition-colors duration-150 ${
+              isActive ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'
+            }`}
           >
             {tab.icon}
             {tab.label}
           </button>
         );
       })}
-      {/* Sliding indicator */}
+
       <div
+        className="absolute bottom-0 h-0.5 rounded-t-[2px] bg-[var(--accent)] transition-[transform,width] duration-300"
         style={{
-          position: 'absolute',
-          bottom: 0,
-          height: '2px',
-          background: 'var(--accent)',
-          borderRadius: '2px 2px 0 0',
           width: indicator.width,
           transform: `translateX(${indicator.left}px)`,
-          transition:
-            'transform 0.28s cubic-bezier(0.16,1,0.3,1), width 0.28s cubic-bezier(0.16,1,0.3,1)',
         }}
       />
     </div>
